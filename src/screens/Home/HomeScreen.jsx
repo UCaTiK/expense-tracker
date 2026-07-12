@@ -121,10 +121,11 @@ export default function HomeScreen({ onSelectPurchase, monthAnchor, onMonthAncho
             />
           ))
         )}
-        {/* Clears the fixed footer (52px add-purchase bar + 58px nav) without
-            the container itself carrying padding — a flex-column child,
-            not a CSS padding-bottom on the scrollable box. */}
-        <div style={{ height: 110 }} />
+        {/* Clears the fixed footer (add-purchase bar + gap + nav + bottom
+            inset) without the container itself carrying padding — a
+            flex-column child, not a CSS padding-bottom on the scrollable
+            box. */}
+        <div style={{ height: 133 }} />
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ export default function FabAddButton({ onClick }) {
         width: '100%',
         height: 52,
         border: 'none',
-        borderTop: '0.5px solid var(--border)',
+        borderRadius: 'var(--radius-md)',
         background: 'var(--text)',
         color: 'var(--bg)',
         fontSize: 15,

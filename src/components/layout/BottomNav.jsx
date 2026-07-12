@@ -12,8 +12,8 @@ export default function BottomNav({ current, onNavigate }) {
       style={{
         display: 'flex',
         background: 'var(--surface)',
-        borderTop: '0.5px solid var(--border)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
+        borderRadius: 'var(--radius-sm)',
+        padding: 3,
       }}
     >
       {TABS.map((tab) => (
@@ -34,8 +34,9 @@ function NavButton({ tab, active, onNavigate }) {
         flexDirection: 'column',
         alignItems: 'center',
         gap: 2,
-        padding: '10px 0 8px',
-        background: 'none',
+        padding: '8px 0',
+        borderRadius: 'var(--radius-sm)',
+        background: active ? 'var(--surface-2)' : 'none',
         border: 'none',
         color: active ? 'var(--text)' : 'var(--text-faint)',
       }}

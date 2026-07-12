@@ -114,7 +114,19 @@ export default function App() {
     <div>
       {screen}
       {showChrome && (
-        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20, display: 'flex', flexDirection: 'column' }}>
+        <div
+          style={{
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 20,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            padding: '0 16px calc(12px + env(safe-area-inset-bottom))',
+          }}
+        >
           {route.screen === 'home' && (
             <FabAddButton onClick={() => openPurchaseForm(null, { screen: 'home' }, { screen: 'home' })} />
           )}
