@@ -4,6 +4,29 @@ import { db } from '../db/db';
 import { useCategoryMap } from './useCategories';
 import { getPeriodRange, aggregateBySubcategory, filterPurchasesByCategory, groupPurchasesByDay } from '../lib/analytics';
 
+// Dates of every purchase ever attributed to this category, regardless of
+// period — used only to decide whether prev/next navigation should be
+// allowed (is there category data further out in that direction), not for
+// display. Deliberately unscoped by date range, unlike the hook below.
+export function useCategoryPurchaseDates(categoryId) {
+  const categoryMap = useCategoryMap();
+  const raw = useLiveQuery(async () => {
+    const purchases = await db.purchases.toArray();
+    const items = await db.purchaseItems.toArray();
+    const itemsByPurchaseId = new Map();
+    for (const item of items) {
+      if (!itemsByPurchaseId.has(item.purchaseId)) itemsByPurchaseId.set(item.purchaseId, []);
+      itemsByPurchaseId.get(item.purchaseId).push(item);
+    }
+    return { purchases, itemsByPurchaseId };
+  }, []);
+
+  return useMemo(() => {
+    if (!raw || !categoryMap) return [];
+    return filterPurchasesByCategory(raw.purchases, raw.itemsByPurchaseId, categoryMap, categoryId).map((p) => p.date);
+  }, [raw, categoryMap, categoryId]);
+}
+
 // Single-category counterpart to useAnalyticsData — same two-step Dexie
 // fetch (purchases in range -> their items), but scoped to one top-level
 // category's subcategory breakdown and purchase list instead of a

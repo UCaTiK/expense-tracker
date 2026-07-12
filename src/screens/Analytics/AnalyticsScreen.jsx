@@ -8,7 +8,8 @@ import EmptyState from '../../components/common/EmptyState';
 import Amount from '../../components/common/Amount';
 import { PieChart } from 'lucide-react';
 import { useAnalyticsData } from '../../hooks/useAnalyticsData';
-import { shiftPeriod, getPeriodLabel } from '../../lib/analytics';
+import { useAllPurchases } from '../../hooks/usePurchases';
+import { shiftPeriod, getPeriodLabel, getPeriodRange } from '../../lib/analytics';
 
 const MODE_LABELS = {
   week: ['С начала недели', 'Вся неделя'],
@@ -24,13 +25,23 @@ export default function AnalyticsScreen({ onSelectCategory }) {
   const data = useAnalyticsData(periodType, anchorDate, mode);
   const label = useMemo(() => getPeriodLabel(periodType, anchorDate), [periodType, anchorDate]);
 
+  // Prev/next only move to periods that actually have data somewhere beyond
+  // them — using the full calendar period bounds (not the possibly-toDate-
+  // truncated data.currentRange), so an empty period sandwiched between two
+  // periods with data (e.g. a data-less February between January and July)
+  // is still reachable, it just renders empty.
+  const purchases = useAllPurchases();
+  const { start, end } = useMemo(() => getPeriodRange(periodType, anchorDate), [periodType, anchorDate]);
+  const hasEarlier = useMemo(() => (purchases || []).some((p) => p.date < start), [purchases, start]);
+  const hasLater = useMemo(() => (purchases || []).some((p) => p.date >= end), [purchases, end]);
+
   const changePeriodType = (type) => {
     setPeriodType(type);
     setAnchorDate(new Date());
   };
 
-  const goPrev = () => setAnchorDate(shiftPeriod(periodType, anchorDate, -1));
-  const goNext = () => setAnchorDate(shiftPeriod(periodType, anchorDate, 1));
+  const goPrev = () => hasEarlier && setAnchorDate(shiftPeriod(periodType, anchorDate, -1));
+  const goNext = () => hasLater && setAnchorDate(shiftPeriod(periodType, anchorDate, 1));
 
   const maxAmount = data ? Math.max(1, ...data.comparison.map((r) => r.amount)) : 1;
   const [toDateLabel, fullLabel] = MODE_LABELS[periodType];
@@ -43,7 +54,7 @@ export default function AnalyticsScreen({ onSelectCategory }) {
       </div>
 
       <div style={{ padding: '0 16px' }}>
-        <PeriodNavigator label={label} onPrev={goPrev} onNext={goNext}>
+        <PeriodNavigator label={label} onPrev={goPrev} onNext={goNext} canGoPrev={hasEarlier} canGoNext={hasLater}>
           {!data ? null : (
             <>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>

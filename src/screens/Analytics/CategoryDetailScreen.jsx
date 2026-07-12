@@ -9,8 +9,8 @@ import { getIconComponent } from '../../lib/icons';
 import { getCategoryColorVar } from '../../lib/colors';
 import { useCategoryMap } from '../../hooks/useCategories';
 import { useAllTags } from '../../hooks/useTags';
-import { useCategoryAnalyticsData } from '../../hooks/useCategoryAnalyticsData';
-import { shiftPeriod, getPeriodLabel } from '../../lib/analytics';
+import { useCategoryAnalyticsData, useCategoryPurchaseDates } from '../../hooks/useCategoryAnalyticsData';
+import { shiftPeriod, getPeriodLabel, getPeriodRange } from '../../lib/analytics';
 
 export default function CategoryDetailScreen({ categoryId, initialPeriodType, initialAnchorDate, onBack, onSelectPurchase }) {
   const [periodType, setPeriodType] = useState(initialPeriodType || 'month');
@@ -25,12 +25,19 @@ export default function CategoryDetailScreen({ categoryId, initialPeriodType, in
   const data = useCategoryAnalyticsData(categoryId, periodType, anchorDate);
   const label = useMemo(() => getPeriodLabel(periodType, anchorDate), [periodType, anchorDate]);
 
+  // Same "only navigate where there's data" rule as Analytics, scoped to
+  // this category specifically rather than all purchases.
+  const categoryDates = useCategoryPurchaseDates(categoryId);
+  const { start, end } = useMemo(() => getPeriodRange(periodType, anchorDate), [periodType, anchorDate]);
+  const hasEarlier = useMemo(() => categoryDates.some((d) => d < start), [categoryDates, start]);
+  const hasLater = useMemo(() => categoryDates.some((d) => d >= end), [categoryDates, end]);
+
   const changePeriodType = (type) => {
     setPeriodType(type);
     setAnchorDate(new Date());
   };
-  const goPrev = () => setAnchorDate(shiftPeriod(periodType, anchorDate, -1));
-  const goNext = () => setAnchorDate(shiftPeriod(periodType, anchorDate, 1));
+  const goPrev = () => hasEarlier && setAnchorDate(shiftPeriod(periodType, anchorDate, -1));
+  const goNext = () => hasLater && setAnchorDate(shiftPeriod(periodType, anchorDate, 1));
 
   const itemsMap = data?.itemsByPurchaseId || new Map();
   const maxSubAmount = data ? Math.max(1, ...data.subcategoryBreakdown.map((r) => r.amount)) : 1;
@@ -66,7 +73,7 @@ export default function CategoryDetailScreen({ categoryId, initialPeriodType, in
       </div>
 
       <div style={{ padding: '12px 16px 0' }}>
-        <PeriodNavigator label={label} onPrev={goPrev} onNext={goNext}>
+        <PeriodNavigator label={label} onPrev={goPrev} onNext={goNext} canGoPrev={hasEarlier} canGoNext={hasLater}>
           {!data ? null : (
             <>
               <Amount value={data.total} size="lg" />
