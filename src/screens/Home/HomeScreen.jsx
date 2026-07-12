@@ -84,14 +84,15 @@ export default function HomeScreen({ onSelectPurchase, monthAnchor, onMonthAncho
 
   return (
     // Only the purchase list scrolls (flex:1 + overflowY:auto) — the total
-    // stays a non-scrolling flex sibling above it. The 133px paddingBottom
-    // (matching the fixed footer's rendered height: add-purchase bar + gap
-    // + nav + bottom inset) shrinks this box's own content area via
-    // box-sizing:border-box, so flex:1 computes to exactly the space
-    // between the header and the footer — the scrollable div's real height
-    // (and hence its scroll range) is bounded there, not just visually
-    // padded past it.
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', paddingBottom: 133 }}>
+    // stays a non-scrolling flex sibling above it. The 145px paddingBottom
+    // (fixed footer's rendered height, 133px, plus a 12px gap matching the
+    // header card's own bottom spacing above the list) shrinks this box's
+    // own content area via box-sizing:border-box, so flex:1 computes to
+    // exactly the space between the header and that gap above the footer —
+    // the scrollable div's real height (and hence its scroll range) ends
+    // there for real, with the gap living outside the list's own box
+    // rather than as trailing padding inside it.
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', paddingBottom: 145 }}>
       <MonthSummaryHeader
         anchorDate={monthAnchor}
         total={monthTotal}
