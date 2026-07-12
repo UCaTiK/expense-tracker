@@ -99,7 +99,7 @@ export default function HomeScreen({ onSelectPurchase, monthAnchor, onMonthAncho
         ref={attachScrollRef}
         onScroll={handleScroll}
         {...swipeHandlers}
-        style={{ flex: 1, overflowY: 'auto', paddingBottom: 96 }}
+        style={{ flex: 1, overflowY: 'auto' }}
       >
         {dayGroups.length === 0 ? (
           <EmptyState
@@ -120,6 +120,10 @@ export default function HomeScreen({ onSelectPurchase, monthAnchor, onMonthAncho
             />
           ))
         )}
+        {/* Clears the fixed FAB (78px tall from screen bottom) without
+            the container itself carrying padding — a flex-column child,
+            not a CSS padding-bottom on the scrollable box. */}
+        <div style={{ height: 78 }} />
       </div>
     </div>
   );

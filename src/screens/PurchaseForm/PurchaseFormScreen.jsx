@@ -110,7 +110,7 @@ export default function PurchaseFormScreen({ purchaseId, onDone, onCancel }) {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', gap: 10 }}>
           <DateField value={form.date} onChange={(date) => setForm({ ...form, date })} />
           <div style={{ flex: 1 }}>
