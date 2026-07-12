@@ -44,6 +44,13 @@ export default function HomeScreen({ onSelectPurchase, monthAnchor, onMonthAncho
       }
       groups[indexByKey.get(key)].purchases.push(p);
     }
+    // Days themselves stay newest-first (from monthPurchases' order), but
+    // within a day, purchase.date has no reliable time-of-day (it's reset to
+    // midnight whenever the date field is touched) — so purchases within a
+    // day sort alphabetically by place instead of by that timestamp.
+    for (const group of groups) {
+      group.purchases.sort((a, b) => (a.place || '').localeCompare(b.place || '', 'ru'));
+    }
     return groups;
   }, [monthPurchases]);
 
