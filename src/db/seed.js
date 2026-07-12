@@ -13,45 +13,31 @@ const DEFAULT_CATEGORIES = [
     icon: 'ShoppingCart',
     color: 'green',
     subcategories: [
-      { key: 'groceries:supermarket', name: 'Супермаркет' },
-      { key: 'groceries:market', name: 'Рынок' },
-      { key: 'groceries:delivery', name: 'Доставка продуктов' },
-    ],
-  },
-  {
-    key: 'transport',
-    name: 'Транспорт',
-    icon: 'Car',
-    color: 'blue',
-    subcategories: [
-      { key: 'transport:public', name: 'Общественный транспорт' },
-      { key: 'transport:taxi', name: 'Такси' },
-      { key: 'transport:fuel', name: 'Топливо' },
-      { key: 'transport:carshare', name: 'Каршеринг' },
+      { key: 'groceries:ready', name: 'Готовая еда' },
+      { key: 'groceries:produce', name: 'Овощи / Фрукты' },
+      { key: 'groceries:meat', name: 'Мясо / Рыба / Яйца' },
+      { key: 'groceries:bakery', name: 'Хлеб / Выпечка' },
+      { key: 'groceries:dairy', name: 'Молочка / Сыр' },
+      { key: 'groceries:grocery', name: 'Бакалея' },
+      { key: 'groceries:drinks', name: 'Напитки' },
+      { key: 'groceries:alcohol', name: 'Алкоголь' },
+      { key: 'groceries:sweets', name: 'Сладости' },
+      { key: 'groceries:addon', name: 'Дополнение' },
+      { key: 'groceries:other', name: 'Прочее' },
+      { key: 'groceries:uncategorized', name: 'Без категории' },
     ],
   },
   {
     key: 'food_out',
-    name: 'Кафе и рестораны',
+    name: 'Рестораны',
     icon: 'UtensilsCrossed',
     color: 'orange',
     subcategories: [
-      { key: 'food_out:cafe', name: 'Кафе' },
+      { key: 'food_out:cafe', name: 'Кафе / фастфуд' },
       { key: 'food_out:restaurant', name: 'Рестораны' },
-      { key: 'food_out:fastfood', name: 'Фастфуд' },
-      { key: 'food_out:coffee', name: 'Кофе на вынос' },
-    ],
-  },
-  {
-    key: 'entertainment',
-    name: 'Развлечения',
-    icon: 'Popcorn',
-    color: 'purple',
-    subcategories: [
-      { key: 'entertainment:movies', name: 'Кино' },
-      { key: 'entertainment:games', name: 'Игры' },
-      { key: 'entertainment:subscriptions', name: 'Подписки' },
-      { key: 'entertainment:hobby', name: 'Хобби' },
+      { key: 'food_out:delivery', name: 'Доставка еды' },
+      { key: 'food_out:drinks', name: 'Напитки' },
+      { key: 'food_out:alcohol', name: 'Алкоголь' },
     ],
   },
   {
@@ -66,14 +52,14 @@ const DEFAULT_CATEGORIES = [
     ],
   },
   {
-    key: 'health',
-    name: 'Здоровье',
-    icon: 'HeartPulse',
-    color: 'red',
+    key: 'transport',
+    name: 'Транспорт',
+    icon: 'Car',
+    color: 'blue',
     subcategories: [
-      { key: 'health:pharmacy', name: 'Аптека' },
-      { key: 'health:doctors', name: 'Врачи' },
-      { key: 'health:sport', name: 'Спорт' },
+      { key: 'transport:taxi', name: 'Такси' },
+      { key: 'transport:public', name: 'Общественный транспорт' },
+      { key: 'transport:carshare', name: 'Каршеринг' },
     ],
   },
   {
@@ -84,8 +70,31 @@ const DEFAULT_CATEGORIES = [
     subcategories: [
       { key: 'home:utilities', name: 'ЖКХ' },
       { key: 'home:communications', name: 'Связь и интернет' },
-      { key: 'home:household', name: 'Товары для дома' },
       { key: 'home:repair', name: 'Ремонт' },
+      { key: 'home:household', name: 'Товары для дома' },
+    ],
+  },
+  {
+    key: 'health',
+    name: 'Здоровье',
+    icon: 'HeartPulse',
+    color: 'red',
+    subcategories: [
+      { key: 'health:pharmacy', name: 'Аптека' },
+      { key: 'health:doctors', name: 'Врачи' },
+      { key: 'health:care', name: 'Уход' },
+    ],
+  },
+  {
+    key: 'entertainment',
+    name: 'Развлечения',
+    icon: 'Popcorn',
+    color: 'purple',
+    subcategories: [
+      { key: 'entertainment:leisure', name: 'Досуг' },
+      { key: 'entertainment:fun', name: 'Развлечения' },
+      { key: 'entertainment:games', name: 'Игры' },
+      { key: 'entertainment:hobby', name: 'Хобби' },
     ],
   },
   {
@@ -201,6 +210,66 @@ export async function dedupeDefaultCategories() {
     }
     await db.categories.bulkDelete(idsToDelete);
   });
+}
+
+// Runs on every startup, after dedupe. Reconciles already-seeded default
+// categories with the current DEFAULT_CATEGORIES definition — needed because
+// changing DEFAULT_CATEGORIES only affects fresh installs via seedDatabase();
+// an existing install already has rows in the DB that this has to migrate in
+// place. Top-level default categories are matched by defaultKey and renamed/
+// resorted in place (their id — and any purchase.categoryId pointing at it —
+// never changes). Default subcategories are diffed by defaultKey: ones no
+// longer in the definition are archived (never deleted — a deleted category
+// would leave purchaseItems.subcategoryId dangling and break history), ones
+// newly added are created, ones still present are resorted/un-archived.
+export async function migrateDefaultCategoriesV2() {
+  const all = await db.categories.toArray();
+  const topsByKey = new Map(
+    all.filter((c) => c.parentId === null && c.isDefault && c.defaultKey).map((c) => [c.defaultKey, c]),
+  );
+
+  for (const [topIndex, topDef] of DEFAULT_CATEGORIES.entries()) {
+    const topRow = topsByKey.get(topDef.key);
+    if (!topRow) continue;
+
+    const topPatch = {};
+    if (topRow.name !== topDef.name) topPatch.name = topDef.name;
+    if (topRow.sortOrder !== topIndex) topPatch.sortOrder = topIndex;
+    if (Object.keys(topPatch).length > 0) await db.categories.update(topRow.id, topPatch);
+
+    const existingSubs = all.filter((c) => c.parentId === topRow.id && c.isDefault && c.defaultKey);
+    const existingByKey = new Map(existingSubs.map((s) => [s.defaultKey, s]));
+    const newKeys = new Set(topDef.subcategories.map((s) => s.key));
+
+    for (const sub of existingSubs) {
+      if (!newKeys.has(sub.defaultKey) && !sub.isArchived) {
+        await db.categories.update(sub.id, { isArchived: true });
+      }
+    }
+
+    for (const [subIndex, subDef] of topDef.subcategories.entries()) {
+      const existing = existingByKey.get(subDef.key);
+      if (existing) {
+        const subPatch = {};
+        if (existing.sortOrder !== subIndex) subPatch.sortOrder = subIndex;
+        if (existing.name !== subDef.name) subPatch.name = subDef.name;
+        if (existing.isArchived) subPatch.isArchived = false;
+        if (Object.keys(subPatch).length > 0) await db.categories.update(existing.id, subPatch);
+      } else {
+        await db.categories.add({
+          id: generateId(),
+          name: subDef.name,
+          icon: null,
+          color: null,
+          parentId: topRow.id,
+          isDefault: true,
+          isArchived: false,
+          sortOrder: subIndex,
+          defaultKey: subDef.key,
+        });
+      }
+    }
+  }
 }
 
 // Runs on every startup, after dedupe. Self-heals top-level default
