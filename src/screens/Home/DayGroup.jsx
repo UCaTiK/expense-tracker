@@ -2,7 +2,7 @@ import Amount from '../../components/common/Amount';
 import PurchaseListItem from './PurchaseListItem';
 import { formatDayGroupLabel } from '../../lib/format';
 
-export default function DayGroup({ dayTimestamp, purchases, itemsMap, categoryMap, tagMap, onSelectPurchase }) {
+export default function DayGroup({ dayTimestamp, purchases, itemsMap, categoryMap, tagMap, onSelectPurchase, isFirst }) {
   const subtotal = purchases.reduce((sum, p) => sum + p.totalPaid, 0);
 
   return (
@@ -11,7 +11,7 @@ export default function DayGroup({ dayTimestamp, purchases, itemsMap, categoryMa
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          padding: '10px 16px 4px',
+          padding: isFirst ? '0 16px 4px' : '10px 16px 4px',
           fontSize: 12,
           color: 'var(--text-muted)',
           textTransform: 'capitalize',

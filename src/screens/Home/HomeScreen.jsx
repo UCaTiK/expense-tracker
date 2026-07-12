@@ -108,7 +108,7 @@ export default function HomeScreen({ onSelectPurchase, monthAnchor, onMonthAncho
             subtitle="Нажмите «+», чтобы добавить первую"
           />
         ) : (
-          dayGroups.map((group) => (
+          dayGroups.map((group, index) => (
             <DayGroup
               key={group.key}
               dayTimestamp={group.dayTimestamp}
@@ -117,6 +117,7 @@ export default function HomeScreen({ onSelectPurchase, monthAnchor, onMonthAncho
               categoryMap={categoryMap}
               tagMap={tagMap}
               onSelectPurchase={onSelectPurchase}
+              isFirst={index === 0}
             />
           ))
         )}
