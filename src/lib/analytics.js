@@ -3,6 +3,7 @@
 // in isolation from data fetching and rendering.
 
 import { resolveTopCategoryId } from './categoryTree';
+import { dateKey } from './format';
 
 export function getPeriodRange(periodType, anchorDate) {
   const d = new Date(anchorDate);
@@ -120,6 +121,75 @@ export function aggregateByCategory(purchases, itemsByPurchaseId, categoryMap) {
 
 export function getTotal(purchases) {
   return purchases.reduce((sum, p) => sum + p.totalPaid, 0);
+}
+
+// Rolls purchase totals up to the subcategories of one specific top-level
+// category (mirrors aggregateByCategory, scoped one level deeper). A
+// needsDetail purchase carries no subcategory info at all, and a detailed
+// item whose category was picked without a subcategory resolves to the
+// top-level category itself (parentId === null) — both cases collapse into
+// the same `null` "Без подкатегории" bucket rather than two separate ones.
+export function aggregateBySubcategory(purchases, itemsByPurchaseId, categoryMap, topCategoryId) {
+  const totals = new Map();
+  const add = (key, amount) => totals.set(key, (totals.get(key) || 0) + amount);
+  const NONE = '__none__';
+
+  for (const purchase of purchases) {
+    if (purchase.needsDetail) {
+      if (purchase.categoryId === topCategoryId) add(NONE, purchase.totalPaid);
+      continue;
+    }
+    const items = itemsByPurchaseId.get(purchase.id) || [];
+    for (const item of items) {
+      const category = categoryMap.get(item.subcategoryId);
+      if (resolveTopCategoryId(category) !== topCategoryId) continue;
+      add(category.parentId !== null ? category.id : NONE, item.amount);
+    }
+  }
+
+  return [...totals.entries()]
+    .map(([key, amount]) => ({
+      subcategoryId: key === NONE ? null : key,
+      subcategory: key === NONE ? null : categoryMap.get(key) || null,
+      amount,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
+// Purchases that contribute to a given top-level category: quick-mode
+// purchases picked directly as that category, or detailed purchases with at
+// least one item under it. Used to list "purchases for this category" —
+// note a detailed purchase spanning multiple categories still appears with
+// its full totalPaid (matching how the Home list always shows whole
+// purchases), not just the portion attributable to this category.
+export function filterPurchasesByCategory(purchases, itemsByPurchaseId, categoryMap, topCategoryId) {
+  return purchases.filter((purchase) => {
+    if (purchase.needsDetail) return purchase.categoryId === topCategoryId;
+    const items = itemsByPurchaseId.get(purchase.id) || [];
+    return items.some((item) => resolveTopCategoryId(categoryMap.get(item.subcategoryId)) === topCategoryId);
+  });
+}
+
+// Groups purchases into day buckets (newest day first, matching the input
+// order) with each day's purchases sorted alphabetically by place — this
+// app is a tracker where time-of-day isn't meaningful, so within a day
+// there's no reliable chronological order to preserve. Shared by the Home
+// list and the category detail purchase list.
+export function groupPurchasesByDay(purchases) {
+  const groups = [];
+  const indexByKey = new Map();
+  for (const p of purchases) {
+    const key = dateKey(p.date);
+    if (!indexByKey.has(key)) {
+      indexByKey.set(key, groups.length);
+      groups.push({ key, dayTimestamp: p.date, purchases: [] });
+    }
+    groups[indexByKey.get(key)].purchases.push(p);
+  }
+  for (const group of groups) {
+    group.purchases.sort((a, b) => (a.place || '').localeCompare(b.place || '', 'ru'));
+  }
+  return groups;
 }
 
 export function countUndetailedPurchases(purchases) {

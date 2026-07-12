@@ -3,17 +3,31 @@ import Amount from '../../components/common/Amount';
 import { getIconComponent } from '../../lib/icons';
 import { getCategoryColorVar } from '../../lib/colors';
 
-export default function CategoryComparisonRow({ row, maxAmount }) {
+export default function CategoryComparisonRow({ row, maxAmount, onClick }) {
   const Icon = getIconComponent(row.category?.icon);
   const color = getCategoryColorVar(row.category?.color);
   const percentOfMax = maxAmount > 0 ? (row.amount / maxAmount) * 100 : 0;
+  const clickable = Boolean(onClick && row.categoryId);
 
   return (
-    <div style={{ marginBottom: 14 }}>
+    <button
+      onClick={clickable ? onClick : undefined}
+      disabled={!clickable}
+      style={{
+        display: 'block',
+        width: '100%',
+        marginBottom: 14,
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        textAlign: 'left',
+        cursor: clickable ? 'pointer' : 'default',
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon size={15} color={color} />
-          <span style={{ fontSize: 14 }}>{row.category?.name || 'Без категории'}</span>
+          <span style={{ fontSize: 14, color: 'var(--text)' }}>{row.category?.name || 'Без категории'}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <ChangeBadge changePercent={row.changePercent} />
@@ -23,7 +37,7 @@ export default function CategoryComparisonRow({ row, maxAmount }) {
       <div style={{ height: 6, borderRadius: 3, background: 'var(--surface-2)', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${percentOfMax}%`, background: color, borderRadius: 3 }} />
       </div>
-    </div>
+    </button>
   );
 }
 

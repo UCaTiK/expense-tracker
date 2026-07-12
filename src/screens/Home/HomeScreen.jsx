@@ -8,8 +8,7 @@ import { usePurchaseItemsByPurchaseIds } from '../../hooks/usePurchaseItems';
 import { useCategoryMap } from '../../hooks/useCategories';
 import { useAllTags } from '../../hooks/useTags';
 import { useSwipe } from '../../hooks/useSwipe';
-import { dateKey } from '../../lib/format';
-import { getPeriodRange, shiftPeriod } from '../../lib/analytics';
+import { getPeriodRange, shiftPeriod, groupPurchasesByDay } from '../../lib/analytics';
 
 export default function HomeScreen({ onSelectPurchase, monthAnchor, onMonthAnchorChange, scrollPositionRef }) {
   const purchases = useAllPurchases();
@@ -33,26 +32,7 @@ export default function HomeScreen({ onSelectPurchase, monthAnchor, onMonthAncho
 
   const monthTotal = useMemo(() => monthPurchases.reduce((sum, p) => sum + p.totalPaid, 0), [monthPurchases]);
 
-  const dayGroups = useMemo(() => {
-    const groups = [];
-    const indexByKey = new Map();
-    for (const p of monthPurchases) {
-      const key = dateKey(p.date);
-      if (!indexByKey.has(key)) {
-        indexByKey.set(key, groups.length);
-        groups.push({ key, dayTimestamp: p.date, purchases: [] });
-      }
-      groups[indexByKey.get(key)].purchases.push(p);
-    }
-    // Days themselves stay newest-first (from monthPurchases' order), but
-    // within a day, purchase.date has no reliable time-of-day (it's reset to
-    // midnight whenever the date field is touched) — so purchases within a
-    // day sort alphabetically by place instead of by that timestamp.
-    for (const group of groups) {
-      group.purchases.sort((a, b) => (a.place || '').localeCompare(b.place || '', 'ru'));
-    }
-    return groups;
-  }, [monthPurchases]);
+  const dayGroups = useMemo(() => groupPurchasesByDay(monthPurchases), [monthPurchases]);
 
   // Returning to Home from a purchase (same month, e.g. the Back button)
   // restores wherever the user left off — handled by the callback ref

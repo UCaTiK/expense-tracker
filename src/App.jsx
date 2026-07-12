@@ -7,6 +7,7 @@ import PurchaseViewScreen from './screens/PurchaseView/PurchaseViewScreen';
 import CategoriesScreen from './screens/Categories/CategoriesScreen';
 import SettingsScreen from './screens/Settings/SettingsScreen';
 import AnalyticsScreen from './screens/Analytics/AnalyticsScreen';
+import CategoryDetailScreen from './screens/Analytics/CategoryDetailScreen';
 import TagsScreen from './screens/Tags/TagsScreen';
 import PlacesScreen from './screens/Places/PlacesScreen';
 
@@ -94,7 +95,31 @@ export default function App() {
       screen = <PlacesScreen onBack={() => navigate('settings')} />;
       break;
     case 'analytics':
-      screen = <AnalyticsScreen />;
+      screen = (
+        <AnalyticsScreen
+          onSelectCategory={(categoryId, periodType, anchorDate) =>
+            navigate('categoryDetail', { categoryId, periodType, anchorDate })
+          }
+        />
+      );
+      break;
+    case 'categoryDetail':
+      screen = (
+        <CategoryDetailScreen
+          categoryId={route.categoryId}
+          initialPeriodType={route.periodType}
+          initialAnchorDate={route.anchorDate}
+          onBack={() => navigate('analytics')}
+          onSelectPurchase={(id) =>
+            openPurchaseView(id, {
+              screen: 'categoryDetail',
+              categoryId: route.categoryId,
+              periodType: route.periodType,
+              anchorDate: route.anchorDate,
+            })
+          }
+        />
+      );
       break;
     case 'home':
     default:

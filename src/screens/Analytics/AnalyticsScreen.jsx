@@ -16,7 +16,7 @@ const MODE_LABELS = {
   year: ['С начала года', 'Весь год'],
 };
 
-export default function AnalyticsScreen() {
+export default function AnalyticsScreen({ onSelectCategory }) {
   const [periodType, setPeriodType] = useState('month');
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [mode, setMode] = useState('toDate');
@@ -83,7 +83,12 @@ export default function AnalyticsScreen() {
                   <EmptyState icon={PieChart} title="Нет покупок за этот период" />
                 ) : (
                   data.comparison.map((row) => (
-                    <CategoryComparisonRow key={row.categoryId || 'none'} row={row} maxAmount={maxAmount} />
+                    <CategoryComparisonRow
+                      key={row.categoryId || 'none'}
+                      row={row}
+                      maxAmount={maxAmount}
+                      onClick={row.categoryId ? () => onSelectCategory(row.categoryId, periodType, anchorDate) : undefined}
+                    />
                   ))
                 )}
               </div>
