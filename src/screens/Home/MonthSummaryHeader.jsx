@@ -4,7 +4,7 @@ import { formatMonthLabel } from '../../lib/format';
 
 export default function MonthSummaryHeader({ anchorDate, total, onPrev, onNext, canGoPrev, canGoNext }) {
   return (
-    <div style={{ flexShrink: 0, padding: '12px 16px' }}>
+    <div style={{ flexShrink: 0, padding: '12px 16px 0' }}>
       <div
         style={{
           position: 'relative',
