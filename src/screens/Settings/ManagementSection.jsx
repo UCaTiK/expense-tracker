@@ -1,10 +1,16 @@
-import { ChevronRight, Tag, MapPin, Wallet } from 'lucide-react';
+import { ChevronRight, LayoutGrid, Tag, MapPin, Wallet } from 'lucide-react';
 import { sectionStyle, sectionTitleStyle, rowButtonStyle } from '../../lib/formStyles';
 
-export default function ManagementSection({ onOpenTags, onOpenPlaces }) {
+export default function ManagementSection({ onOpenCategories, onOpenTags, onOpenPlaces }) {
   return (
     <section style={sectionStyle}>
       <h2 style={sectionTitleStyle}>Управление</h2>
+
+      <button onClick={onOpenCategories} style={rowButtonStyle}>
+        <LayoutGrid size={17} />
+        <span style={{ flex: 1 }}>Категории</span>
+        <ChevronRight size={16} color="var(--text-faint)" />
+      </button>
 
       <button onClick={onOpenTags} style={rowButtonStyle}>
         <Tag size={17} />

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { ChevronLeft, Plus } from 'lucide-react';
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import CategoryAccordionItem from './CategoryAccordionItem';
@@ -8,7 +8,7 @@ import { useCategoryTree } from '../../hooks/useCategories';
 import { createCategory, reorderCategories } from '../../db/categories';
 import { inputStyle } from '../../lib/formStyles';
 
-export default function CategoriesScreen() {
+export default function CategoriesScreen({ onBack }) {
   const tree = useCategoryTree({ includeArchived: true });
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
@@ -34,9 +34,12 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <div style={{ paddingBottom: 96 }}>
-      <div style={{ padding: '20px 16px 8px' }}>
-        <h1 style={{ fontSize: 20, margin: 0 }}>Категории</h1>
+    <div style={{ paddingBottom: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px' }}>
+        <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--text)', padding: 4 }}>
+          <ChevronLeft size={22} />
+        </button>
+        <h1 style={{ fontSize: 17, fontWeight: 600, margin: 0 }}>Категории</h1>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

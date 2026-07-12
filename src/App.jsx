@@ -10,7 +10,7 @@ import AnalyticsScreen from './screens/Analytics/AnalyticsScreen';
 import TagsScreen from './screens/Tags/TagsScreen';
 import PlacesScreen from './screens/Places/PlacesScreen';
 
-const TAB_SCREENS = new Set(['home', 'categories', 'analytics', 'settings']);
+const TAB_SCREENS = new Set(['home', 'analytics', 'settings']);
 
 export default function App() {
   const [route, setRoute] = useState({ screen: 'home' });
@@ -76,10 +76,16 @@ export default function App() {
       );
       break;
     case 'categories':
-      screen = <CategoriesScreen />;
+      screen = <CategoriesScreen onBack={() => navigate('settings')} />;
       break;
     case 'settings':
-      screen = <SettingsScreen onOpenTags={() => navigate('tags')} onOpenPlaces={() => navigate('places')} />;
+      screen = (
+        <SettingsScreen
+          onOpenCategories={() => navigate('categories')}
+          onOpenTags={() => navigate('tags')}
+          onOpenPlaces={() => navigate('places')}
+        />
+      );
       break;
     case 'tags':
       screen = <TagsScreen onBack={() => navigate('settings')} />;
@@ -107,11 +113,9 @@ export default function App() {
   return (
     <div>
       {screen}
-      {showChrome && (
-        <>
-          <BottomNav current={route.screen} onNavigate={(s) => (s === 'home' ? goToHomeTab() : navigate(s))} />
-          <FabAddButton onClick={() => openPurchaseForm(null, { screen: route.screen }, { screen: route.screen })} />
-        </>
+      {showChrome && <BottomNav current={route.screen} onNavigate={(s) => (s === 'home' ? goToHomeTab() : navigate(s))} />}
+      {route.screen === 'home' && (
+        <FabAddButton onClick={() => openPurchaseForm(null, { screen: 'home' }, { screen: 'home' })} />
       )}
     </div>
   );
