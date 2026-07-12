@@ -1,0 +1,229 @@
+import { db } from './db';
+import { generateId } from '../lib/uuid';
+import { ICON_NAMES } from '../lib/icons';
+import { CATEGORY_COLORS } from '../lib/colors';
+
+// 8 top-level categories, one per accent color in the palette.
+// defaultKey is a stable internal identifier used only for dedup matching —
+// it survives user renames since it's never shown in the UI.
+const DEFAULT_CATEGORIES = [
+  {
+    key: 'groceries',
+    name: 'Продукты',
+    icon: 'ShoppingCart',
+    color: 'green',
+    subcategories: [
+      { key: 'groceries:supermarket', name: 'Супермаркет' },
+      { key: 'groceries:market', name: 'Рынок' },
+      { key: 'groceries:delivery', name: 'Доставка продуктов' },
+    ],
+  },
+  {
+    key: 'transport',
+    name: 'Транспорт',
+    icon: 'Car',
+    color: 'blue',
+    subcategories: [
+      { key: 'transport:public', name: 'Общественный транспорт' },
+      { key: 'transport:taxi', name: 'Такси' },
+      { key: 'transport:fuel', name: 'Топливо' },
+      { key: 'transport:carshare', name: 'Каршеринг' },
+    ],
+  },
+  {
+    key: 'food_out',
+    name: 'Кафе и рестораны',
+    icon: 'UtensilsCrossed',
+    color: 'orange',
+    subcategories: [
+      { key: 'food_out:cafe', name: 'Кафе' },
+      { key: 'food_out:restaurant', name: 'Рестораны' },
+      { key: 'food_out:fastfood', name: 'Фастфуд' },
+      { key: 'food_out:coffee', name: 'Кофе на вынос' },
+    ],
+  },
+  {
+    key: 'entertainment',
+    name: 'Развлечения',
+    icon: 'Popcorn',
+    color: 'purple',
+    subcategories: [
+      { key: 'entertainment:movies', name: 'Кино' },
+      { key: 'entertainment:games', name: 'Игры' },
+      { key: 'entertainment:subscriptions', name: 'Подписки' },
+      { key: 'entertainment:hobby', name: 'Хобби' },
+    ],
+  },
+  {
+    key: 'clothes',
+    name: 'Одежда',
+    icon: 'Shirt',
+    color: 'pink',
+    subcategories: [
+      { key: 'clothes:clothing', name: 'Одежда' },
+      { key: 'clothes:shoes', name: 'Обувь' },
+      { key: 'clothes:accessories', name: 'Аксессуары' },
+    ],
+  },
+  {
+    key: 'health',
+    name: 'Здоровье',
+    icon: 'HeartPulse',
+    color: 'red',
+    subcategories: [
+      { key: 'health:pharmacy', name: 'Аптека' },
+      { key: 'health:doctors', name: 'Врачи' },
+      { key: 'health:sport', name: 'Спорт' },
+    ],
+  },
+  {
+    key: 'home',
+    name: 'Дом и быт',
+    icon: 'Home',
+    color: 'teal',
+    subcategories: [
+      { key: 'home:utilities', name: 'ЖКХ' },
+      { key: 'home:communications', name: 'Связь и интернет' },
+      { key: 'home:household', name: 'Товары для дома' },
+      { key: 'home:repair', name: 'Ремонт' },
+    ],
+  },
+  {
+    key: 'other',
+    name: 'Прочее',
+    icon: 'MoreHorizontal',
+    color: 'coral',
+    subcategories: [
+      { key: 'other:gifts', name: 'Подарки' },
+      { key: 'other:misc', name: 'Прочее' },
+    ],
+  },
+];
+
+const DEFAULT_STYLE_BY_KEY = new Map(DEFAULT_CATEGORIES.map((top) => [top.key, { icon: top.icon, color: top.color }]));
+
+const DEFAULT_TAGS = [
+  { key: 'monthly', name: 'Ежемесячно', color: 'blue' },
+  { key: 'weekly', name: 'Еженедельно', color: 'green' },
+  { key: 'yearly', name: 'Ежегодно', color: 'purple' },
+];
+
+export async function seedDatabase() {
+  const categoryCount = await db.categories.count();
+  if (categoryCount === 0) {
+    const rows = [];
+    DEFAULT_CATEGORIES.forEach((top, topIndex) => {
+      const topId = generateId();
+      rows.push({
+        id: topId,
+        name: top.name,
+        icon: top.icon,
+        color: top.color,
+        parentId: null,
+        isDefault: true,
+        isArchived: false,
+        sortOrder: topIndex,
+        defaultKey: top.key,
+      });
+      top.subcategories.forEach((sub, subIndex) => {
+        rows.push({
+          id: generateId(),
+          name: sub.name,
+          icon: null,
+          color: null,
+          parentId: topId,
+          isDefault: true,
+          isArchived: false,
+          sortOrder: subIndex,
+          defaultKey: sub.key,
+        });
+      });
+    });
+
+    await db.categories.bulkAdd(rows);
+  }
+
+  const tagCount = await db.tags.count();
+  if (tagCount === 0) {
+    await db.tags.bulkAdd(
+      DEFAULT_TAGS.map((t) => ({ id: generateId(), name: t.name, color: t.color, defaultKey: t.key })),
+    );
+  }
+}
+
+let seedPromise = null;
+export function ensureSeeded() {
+  if (!seedPromise) seedPromise = seedDatabase();
+  return seedPromise;
+}
+
+// Runs on every startup. Groups isDefault categories by defaultKey, keeps a
+// deterministic survivor (lowest sortOrder, then lowest id), remaps any
+// purchaseItems.subcategoryId pointing at a duplicate to the survivor's id,
+// then deletes the duplicates. Guards against React.StrictMode-style
+// double-seeding races leaving orphaned duplicate categories behind.
+export async function dedupeDefaultCategories() {
+  // isDefault is not an indexed field (booleans aren't valid IndexedDB keys),
+  // so filter in memory rather than via .where().
+  const all = (await db.categories.toArray()).filter((c) => c.isDefault);
+  const groups = new Map();
+  for (const cat of all) {
+    if (!cat.defaultKey) continue;
+    if (!groups.has(cat.defaultKey)) groups.set(cat.defaultKey, []);
+    groups.get(cat.defaultKey).push(cat);
+  }
+
+  const idRemap = new Map();
+  const idsToDelete = [];
+
+  for (const group of groups.values()) {
+    if (group.length <= 1) continue;
+    group.sort((a, b) => {
+      if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+      return a.id < b.id ? -1 : 1;
+    });
+    const [survivor, ...duplicates] = group;
+    for (const dup of duplicates) {
+      idRemap.set(dup.id, survivor.id);
+      idsToDelete.push(dup.id);
+    }
+  }
+
+  if (idsToDelete.length === 0) return;
+
+  await db.transaction('rw', db.categories, db.purchaseItems, db.purchases, async () => {
+    // Remap subcategory references on purchase items.
+    for (const [dupId, survivorId] of idRemap) {
+      await db.purchaseItems.where('subcategoryId').equals(dupId).modify({ subcategoryId: survivorId });
+      await db.purchases.where('categoryId').equals(dupId).modify({ categoryId: survivorId });
+      // Duplicate top-level categories may also be a subcategory's parent.
+      await db.categories.where('parentId').equals(dupId).modify({ parentId: survivorId });
+    }
+    await db.categories.bulkDelete(idsToDelete);
+  });
+}
+
+// Runs on every startup, after dedupe. Self-heals top-level default
+// categories whose icon/color ended up missing or unrecognized (e.g. from a
+// stale/partial write in an old tab kept open across many code changes) by
+// restoring the value from DEFAULT_CATEGORIES. Only touches values that are
+// empty or don't match a known icon/color — a category the user deliberately
+// re-styled via the edit menu always has a valid icon/color and is left
+// alone, even though it's still isDefault/defaultKey-tagged.
+export async function repairDefaultCategoryStyling() {
+  const all = await db.categories.toArray();
+  const fixes = [];
+  for (const cat of all) {
+    if (cat.parentId !== null || !cat.isDefault || !cat.defaultKey) continue;
+    const expected = DEFAULT_STYLE_BY_KEY.get(cat.defaultKey);
+    if (!expected) continue;
+
+    const patch = {};
+    if (!cat.icon || !ICON_NAMES.includes(cat.icon)) patch.icon = expected.icon;
+    if (!cat.color || !CATEGORY_COLORS.includes(cat.color)) patch.color = expected.color;
+    if (Object.keys(patch).length > 0) fixes.push(db.categories.update(cat.id, patch));
+  }
+  if (fixes.length > 0) await Promise.all(fixes);
+}
+
+export { DEFAULT_CATEGORIES };

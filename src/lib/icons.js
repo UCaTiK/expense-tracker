@@ -1,0 +1,71 @@
+import {
+  ShoppingCart,
+  Car,
+  UtensilsCrossed,
+  Popcorn,
+  Shirt,
+  HeartPulse,
+  Home,
+  MoreHorizontal,
+  Gift,
+  Coffee,
+  Plane,
+  Wallet,
+  Smartphone,
+  Dumbbell,
+  PawPrint,
+  Baby,
+  Music,
+  Film,
+  Fuel,
+  Bus,
+  Bike,
+  Pizza,
+  ShoppingBag,
+  CreditCard,
+  Wrench,
+  Tag,
+  Book,
+  Briefcase,
+  Sparkles,
+} from 'lucide-react';
+
+// Icons available to seed data and to the IconPicker (Phase C). Keyed by the
+// string stored in category.icon so it survives serialization/export-import.
+export const ICON_REGISTRY = {
+  ShoppingCart,
+  Car,
+  UtensilsCrossed,
+  Popcorn,
+  Shirt,
+  HeartPulse,
+  Home,
+  MoreHorizontal,
+  Gift,
+  Coffee,
+  Plane,
+  Wallet,
+  Smartphone,
+  Dumbbell,
+  PawPrint,
+  Baby,
+  Music,
+  Film,
+  Fuel,
+  Bus,
+  Bike,
+  Pizza,
+  ShoppingBag,
+  CreditCard,
+  Wrench,
+  Tag,
+  Book,
+  Briefcase,
+  Sparkles,
+};
+
+export const ICON_NAMES = Object.keys(ICON_REGISTRY);
+
+export function getIconComponent(name) {
+  return ICON_REGISTRY[name] || Tag;
+}
