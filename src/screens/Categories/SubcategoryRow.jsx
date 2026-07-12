@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { GripVertical, MoreHorizontal } from 'lucide-react';
 import CategoryEditMenu from './CategoryEditMenu';
 
-export default function SubcategoryRow({ category }) {
+export default function SubcategoryRow({ category, dragHandleProps }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -21,6 +21,13 @@ export default function SubcategoryRow({ category }) {
           В архиве
         </span>
       )}
+      <button
+        {...dragHandleProps}
+        aria-label="Изменить порядок"
+        style={{ background: 'none', border: 'none', color: 'var(--text-faint)', padding: 4, touchAction: 'none', cursor: 'grab' }}
+      >
+        <GripVertical size={16} />
+      </button>
       <button onClick={() => setMenuOpen(true)} style={{ background: 'none', border: 'none', color: 'var(--text-faint)', padding: 4 }}>
         <MoreHorizontal size={18} />
       </button>

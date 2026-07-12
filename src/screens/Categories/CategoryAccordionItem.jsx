@@ -1,19 +1,27 @@
 import { useState } from 'react';
-import { ChevronDown, MoreHorizontal, Plus } from 'lucide-react';
+import { ChevronDown, GripVertical, MoreHorizontal, Plus } from 'lucide-react';
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import SubcategoryRow from './SubcategoryRow';
 import CategoryEditMenu from './CategoryEditMenu';
+import SortableItem from '../../components/common/SortableItem';
 import { getIconComponent } from '../../lib/icons';
 import { getCategoryColorVar } from '../../lib/colors';
-import { createCategory } from '../../db/categories';
+import { createCategory, reorderCategories } from '../../db/categories';
 import { inputStyle } from '../../lib/formStyles';
 
-export default function CategoryAccordionItem({ category }) {
+export default function CategoryAccordionItem({ category, dragHandleProps }) {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [addingSub, setAddingSub] = useState(false);
   const [newSubName, setNewSubName] = useState('');
 
   const Icon = getIconComponent(category.icon);
+
+  const subSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const submitNewSub = async () => {
     const trimmed = newSubName.trim();
@@ -22,18 +30,26 @@ export default function CategoryAccordionItem({ category }) {
     setAddingSub(false);
   };
 
+  const handleSubDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = category.subcategories.map((s) => s.id);
+    const newIds = arrayMove(ids, ids.indexOf(active.id), ids.indexOf(over.id));
+    await reorderCategories(newIds);
+  };
+
   return (
-    <div style={{ borderBottom: '0.5px solid var(--border)' }}>
+    <div>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 12,
-          padding: '14px 16px',
+          padding: 16,
           opacity: category.isArchived ? 0.5 : 1,
         }}
       >
-        <button onClick={() => setExpanded(!expanded)} style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, background: 'none', border: 'none', textAlign: 'left' }}>
+        <button onClick={() => setExpanded(!expanded)} style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, padding: 0, background: 'none', border: 'none', textAlign: 'left' }}>
           <div
             style={{
               width: 32,
@@ -56,16 +72,31 @@ export default function CategoryAccordionItem({ category }) {
           )}
           <ChevronDown size={18} style={{ transform: expanded ? 'rotate(180deg)' : 'none', color: 'var(--text-faint)' }} />
         </button>
+        <button
+          {...dragHandleProps}
+          aria-label="Изменить порядок"
+          style={{ background: 'none', border: 'none', color: 'var(--text-faint)', padding: 4, touchAction: 'none', cursor: 'grab' }}
+        >
+          <GripVertical size={18} />
+        </button>
         <button onClick={() => setMenuOpen(true)} style={{ background: 'none', border: 'none', color: 'var(--text-faint)', padding: 4 }}>
           <MoreHorizontal size={18} />
         </button>
       </div>
 
       {expanded && (
-        <div style={{ paddingBottom: 8 }}>
-          {category.subcategories.map((sub) => (
-            <SubcategoryRow key={sub.id} category={sub} />
-          ))}
+        <div style={{ paddingBottom: 8, borderTop: '0.5px solid var(--border)' }}>
+          <DndContext sensors={subSensors} collisionDetection={closestCenter} onDragEnd={handleSubDragEnd}>
+            <SortableContext items={category.subcategories.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+              {category.subcategories.map((sub) => (
+                <SortableItem key={sub.id} id={sub.id}>
+                  {({ dragHandleProps: subDragHandleProps }) => (
+                    <SubcategoryRow category={sub} dragHandleProps={subDragHandleProps} />
+                  )}
+                </SortableItem>
+              ))}
+            </SortableContext>
+          </DndContext>
           {addingSub ? (
             <div style={{ display: 'flex', gap: 8, padding: '8px 16px 8px 48px' }}>
               <input

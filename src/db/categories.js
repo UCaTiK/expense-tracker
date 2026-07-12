@@ -41,6 +41,15 @@ export async function updateCategory(id, patch) {
   await db.categories.update(id, patch);
 }
 
+// `orderedIds` is a full sibling group (all top-level categories, or all
+// subcategories of one parent) in its new order — sortOrder is just the
+// index within that group.
+export async function reorderCategories(orderedIds) {
+  await db.transaction('rw', db.categories, async () => {
+    await Promise.all(orderedIds.map((id, index) => db.categories.update(id, { sortOrder: index })));
+  });
+}
+
 // Archiving a top-level category cascades to its currently-active
 // subcategories; restore only un-hides the category itself (subcategories
 // archived independently stay archived, since the cascade only runs one way).
