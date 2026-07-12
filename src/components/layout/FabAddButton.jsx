@@ -6,23 +6,22 @@ export default function FabAddButton({ onClick }) {
       onClick={onClick}
       aria-label="Добавить покупку"
       style={{
-        position: 'fixed',
-        bottom: 22,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 56,
-        height: 56,
-        borderRadius: '50%',
-        background: 'var(--text)',
-        border: '4px solid var(--surface)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
-        zIndex: 21,
+        gap: 8,
+        width: '100%',
+        height: 52,
+        border: 'none',
+        borderTop: '0.5px solid var(--border)',
+        background: 'var(--text)',
+        color: 'var(--bg)',
+        fontSize: 15,
+        fontWeight: 600,
       }}
     >
-      <Plus size={26} color="var(--bg)" />
+      <Plus size={18} />
+      Добавить покупку
     </button>
   );
 }

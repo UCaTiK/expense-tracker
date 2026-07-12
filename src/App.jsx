@@ -113,9 +113,13 @@ export default function App() {
   return (
     <div>
       {screen}
-      {showChrome && <BottomNav current={route.screen} onNavigate={(s) => (s === 'home' ? goToHomeTab() : navigate(s))} />}
-      {route.screen === 'home' && (
-        <FabAddButton onClick={() => openPurchaseForm(null, { screen: 'home' }, { screen: 'home' })} />
+      {showChrome && (
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 20, display: 'flex', flexDirection: 'column' }}>
+          {route.screen === 'home' && (
+            <FabAddButton onClick={() => openPurchaseForm(null, { screen: 'home' }, { screen: 'home' })} />
+          )}
+          <BottomNav current={route.screen} onNavigate={(s) => (s === 'home' ? goToHomeTab() : navigate(s))} />
+        </div>
       )}
     </div>
   );

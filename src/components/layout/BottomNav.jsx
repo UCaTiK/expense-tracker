@@ -10,15 +10,10 @@ export default function BottomNav({ current, onNavigate }) {
   return (
     <nav
       style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
         display: 'flex',
         background: 'var(--surface)',
         borderTop: '0.5px solid var(--border)',
         paddingBottom: 'env(safe-area-inset-bottom)',
-        zIndex: 20,
       }}
     >
       {TABS.map((tab) => (

@@ -121,10 +121,10 @@ export default function HomeScreen({ onSelectPurchase, monthAnchor, onMonthAncho
             />
           ))
         )}
-        {/* Clears the fixed FAB (78px tall from screen bottom) without
+        {/* Clears the fixed footer (52px add-purchase bar + 58px nav) without
             the container itself carrying padding — a flex-column child,
             not a CSS padding-bottom on the scrollable box. */}
-        <div style={{ height: 78 }} />
+        <div style={{ height: 110 }} />
       </div>
     </div>
   );
