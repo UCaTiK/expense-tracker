@@ -5,6 +5,7 @@ import { resolveTopCategoryId } from '../../lib/categoryTree';
 import { getIconComponent } from '../../lib/icons';
 import { getCategoryColorVar } from '../../lib/colors';
 import { inputStyle } from '../../lib/formStyles';
+import { formatAmount } from '../../lib/format';
 import PickerModal from '../../components/common/PickerModal';
 
 function CategoryOptionRow({ category }) {
@@ -30,7 +31,7 @@ function CategoryOptionRow({ category }) {
   );
 }
 
-export default function PurchaseItemRow({ item, onChange, onRemove }) {
+export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRemove }) {
   const categoryMap = useCategoryMap();
   const topCategories = useTopLevelCategories() || [];
   const [openPicker, setOpenPicker] = useState(null); // null | 'category' | 'subcategory'
@@ -77,14 +78,33 @@ export default function PurchaseItemRow({ item, onChange, onRemove }) {
             placeholder="Название (необязательно)"
             style={{ ...inputStyle, flex: 1, minWidth: 0, padding: '10px 12px', fontSize: 14 }}
           />
-          <input
-            type="number"
-            inputMode="decimal"
-            value={item.amount}
-            onChange={(e) => onChange({ ...item, amount: e.target.value })}
-            placeholder="0"
-            style={{ ...inputStyle, width: 84, flexShrink: 0, padding: '10px 8px', fontSize: 14 }}
-          />
+          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={item.amount}
+              onChange={(e) => onChange({ ...item, amount: e.target.value })}
+              placeholder="0"
+              style={{ ...inputStyle, width: 84, padding: '10px 8px', fontSize: 14 }}
+            />
+            {!item.amount && suggestedAmount != null && (
+              <button
+                type="button"
+                onClick={() => onChange({ ...item, amount: String(suggestedAmount) })}
+                style={{
+                  marginTop: 3,
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  fontSize: 11,
+                  color: 'var(--text-faint)',
+                  textDecoration: 'underline',
+                }}
+              >
+                {formatAmount(suggestedAmount)} ₽
+              </button>
+            )}
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <button
