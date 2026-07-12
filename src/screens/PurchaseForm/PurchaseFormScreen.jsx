@@ -135,6 +135,7 @@ export default function PurchaseFormScreen({ purchaseId, onDone, onCancel }) {
             items={form.items}
             onChangeItems={(items) => setForm({ ...form, items })}
             totalPaid={form.totalPaid}
+            onChangeTotalPaid={(totalPaid) => setForm({ ...form, totalPaid })}
             quickCategoryId={form.quickCategoryId}
           />
         )}

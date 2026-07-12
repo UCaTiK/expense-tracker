@@ -1,6 +1,6 @@
 import { formatAmount } from '../../lib/format';
 
-export default function SumMismatchWarning({ itemsSum, totalPaid }) {
+export default function SumMismatchWarning({ itemsSum, totalPaid, onUseItemsSum }) {
   const diff = Number(totalPaid || 0) - itemsSum;
   if (Math.abs(diff) < 0.01) return null;
 
@@ -8,6 +8,10 @@ export default function SumMismatchWarning({ itemsSum, totalPaid }) {
   return (
     <div
       style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 8,
         padding: '10px 12px',
         borderRadius: 'var(--radius-sm)',
         background: 'var(--surface-2)',
@@ -17,7 +21,27 @@ export default function SumMismatchWarning({ itemsSum, totalPaid }) {
         marginTop: 4,
       }}
     >
-      Сумма позиций {isMore ? 'меньше' : 'больше'} уплаченной на {formatAmount(Math.abs(diff))} ₽
+      <span>
+        Сумма позиций {isMore ? 'меньше' : 'больше'} уплаченной на {formatAmount(Math.abs(diff))} ₽
+      </span>
+      {onUseItemsSum && (
+        <button
+          type="button"
+          onClick={onUseItemsSum}
+          style={{
+            flexShrink: 0,
+            background: 'none',
+            border: 'none',
+            color: 'var(--accent-orange)',
+            fontSize: 13,
+            fontWeight: 600,
+            textDecoration: 'underline',
+            padding: 0,
+          }}
+        >
+          Указать как уплачено
+        </button>
+      )}
     </div>
   );
 }

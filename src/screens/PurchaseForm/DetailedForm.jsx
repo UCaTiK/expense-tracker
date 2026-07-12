@@ -32,12 +32,19 @@ function getDefaultCategoryForNewItem(items, categoryMap, quickCategoryId) {
   return best;
 }
 
-export default function DetailedForm({ items, onChangeItems, totalPaid, quickCategoryId }) {
+export default function DetailedForm({ items, onChangeItems, totalPaid, onChangeTotalPaid, quickCategoryId }) {
   const categoryMap = useCategoryMap();
 
+  // A new item's amount defaults to whatever is left of the stated total
+  // once the existing items' amounts are subtracted — for the first item
+  // (nothing to subtract yet) that's the whole total, so a single-item
+  // purchase can be detailed without retyping the amount.
   const addItem = () => {
     const subcategoryId = getDefaultCategoryForNewItem(items, categoryMap || new Map(), quickCategoryId);
-    onChangeItems([...items, { id: generateId(), name: '', subcategoryId, amount: '' }]);
+    const existingSum = items.reduce((sum, it) => sum + (Number(it.amount) || 0), 0);
+    const remaining = Math.round((Number(totalPaid || 0) - existingSum) * 100) / 100;
+    const amount = remaining > 0 ? String(remaining) : '';
+    onChangeItems([...items, { id: generateId(), name: '', subcategoryId, amount }]);
   };
 
   const updateItem = (index, next) => {
@@ -76,7 +83,13 @@ export default function DetailedForm({ items, onChangeItems, totalPaid, quickCat
       >
         <Plus size={16} /> Добавить позицию
       </button>
-      {items.length > 0 && <SumMismatchWarning itemsSum={itemsSum} totalPaid={totalPaid} />}
+      {items.length > 0 && (
+        <SumMismatchWarning
+          itemsSum={itemsSum}
+          totalPaid={totalPaid}
+          onUseItemsSum={onChangeTotalPaid ? () => onChangeTotalPaid(String(itemsSum)) : undefined}
+        />
+      )}
     </div>
   );
 }
