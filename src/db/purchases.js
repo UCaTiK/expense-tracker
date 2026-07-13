@@ -4,17 +4,39 @@ import { upsertPlaceLastUsed } from './places';
 import { resolveTopCategoryId } from '../lib/categoryTree';
 
 // In detailed mode, purchase.categoryId is a fallback for list-row display
-// (spec: "используется в быстром режиме или как fallback"). Assumption
-// (spec doesn't specify the exact rule): the top-level parent of the item
-// with the largest amount, ties broken by entry order.
+// (spec: "используется в быстром режиме или как fallback"). If every item
+// agrees on the exact same subcategory (or category-only pick), that exact
+// id is attached directly — not resolved up to its top-level parent — so
+// the list row can show the precise subcategory rather than a generic
+// top-level label. Otherwise it falls back to whichever top-level category
+// is most common among the items (ties broken by first-seen order), not
+// just the single largest item's category.
 async function computeFallbackCategoryId(items) {
   if (items.length === 0) return null;
-  let winner = items[0];
+
+  const distinctIds = new Set(items.map((it) => it.subcategoryId));
+  if (distinctIds.size === 1) return items[0].subcategoryId;
+
+  const topIds = [];
   for (const item of items) {
-    if (item.amount > winner.amount) winner = item;
+    const category = await db.categories.get(item.subcategoryId);
+    const topId = resolveTopCategoryId(category);
+    if (topId) topIds.push(topId);
   }
-  const category = await db.categories.get(winner.subcategoryId);
-  return resolveTopCategoryId(category);
+  if (topIds.length === 0) return null;
+
+  const counts = new Map();
+  for (const id of topIds) counts.set(id, (counts.get(id) || 0) + 1);
+  let best = topIds[0];
+  let bestCount = 0;
+  for (const id of topIds) {
+    const count = counts.get(id);
+    if (count > bestCount) {
+      best = id;
+      bestCount = count;
+    }
+  }
+  return best;
 }
 
 // Single entry point for both create and edit — the only difference is

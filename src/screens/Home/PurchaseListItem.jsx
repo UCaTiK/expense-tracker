@@ -1,19 +1,22 @@
 import { getIconComponent } from '../../lib/icons';
 import { getCategoryColorVar } from '../../lib/colors';
+import { resolveTopCategoryId } from '../../lib/categoryTree';
 import Amount from '../../components/common/Amount';
 import TagChip from '../../components/common/TagChip';
 
 const ICON_SIZE = 36;
 const ICON_GAP = 12;
 
-export default function PurchaseListItem({ purchase, items, categoryMap, tagMap, onClick }) {
-  const topCategory = categoryMap.get(purchase.categoryId);
-  const subcategory = items && items.length === 1 ? categoryMap.get(items[0].subcategoryId) : null;
+export default function PurchaseListItem({ purchase, categoryMap, tagMap, onClick }) {
+  // purchase.categoryId is either an exact subcategory (every item in a
+  // detailed purchase agreed on one) or a top-level category (quick-mode
+  // pick, or the most-common top category among several different
+  // subcategories) — resolved up to its top-level ancestor for icon/color,
+  // but shown as whichever of the two it actually is for the label.
+  const directCategory = categoryMap.get(purchase.categoryId);
+  const topCategory = categoryMap.get(resolveTopCategoryId(directCategory));
 
-  let label = 'Не детализировано';
-  if (!purchase.needsDetail) {
-    label = subcategory ? subcategory.name : topCategory ? topCategory.name : 'Разное';
-  }
+  const label = purchase.needsDetail ? 'Не детализировано' : directCategory?.name || 'Разное';
 
   const Icon = getIconComponent(topCategory?.icon);
   const color = topCategory ? getCategoryColorVar(topCategory.color) : 'var(--text-faint)';
