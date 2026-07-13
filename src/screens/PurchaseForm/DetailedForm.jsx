@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import PurchaseItemRow from './PurchaseItemRow';
 import SumMismatchWarning from './SumMismatchWarning';
@@ -61,7 +61,11 @@ export default function DetailedForm({ items, onChangeItems, totalPaid, onChange
   // following totalPaid live (e.g. total typed as 0, one item added, then
   // the total gets filled in afterwards) until the user actually touches
   // the field themselves, which is the only thing that confirms it.
-  useEffect(() => {
+  // useLayoutEffect (not useEffect) so the item's amount is corrected
+  // before the browser paints — otherwise the mismatch warning below would
+  // flash on screen for a frame between the total's new value landing and
+  // the item catching up to it.
+  useLayoutEffect(() => {
     if (items.length !== 1) return;
     const [only] = items;
     if (!suggestedIds.has(only.id)) return;
