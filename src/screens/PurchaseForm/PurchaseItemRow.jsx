@@ -72,41 +72,6 @@ export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRem
     >
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <input
-            value={item.name}
-            onChange={(e) => onChange({ ...item, name: e.target.value })}
-            placeholder="Название (необязательно)"
-            style={{ ...inputStyle, flex: 1, minWidth: 0, padding: '10px 12px', fontSize: 14 }}
-          />
-          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={item.amount}
-              onChange={(e) => onChange({ ...item, amount: e.target.value })}
-              placeholder="0"
-              style={{ ...inputStyle, width: 84, padding: '10px 8px', fontSize: 14 }}
-            />
-            {!item.amount && suggestedAmount != null && (
-              <button
-                type="button"
-                onClick={() => onChange({ ...item, amount: String(suggestedAmount) })}
-                style={{
-                  marginTop: 3,
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  fontSize: 11,
-                  color: 'var(--text-faint)',
-                  textDecoration: 'underline',
-                }}
-              >
-                {formatAmount(suggestedAmount)} ₽
-              </button>
-            )}
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 6 }}>
           <button
             type="button"
             onClick={() => setOpenPicker('category')}
@@ -146,6 +111,43 @@ export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRem
             {selectedSub?.name || 'Подкатегория'}
           </button>
         </div>
+
+        <div>
+          <input
+            type="number"
+            inputMode="decimal"
+            value={item.amount}
+            onChange={(e) => onChange({ ...item, amount: e.target.value })}
+            placeholder="0"
+            style={{ ...inputStyle, width: '100%', padding: '10px 12px', fontSize: 14 }}
+          />
+          {!item.amount && suggestedAmount != null && (
+            <button
+              type="button"
+              onClick={() => onChange({ ...item, amount: String(suggestedAmount) })}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                marginTop: 6,
+                padding: '4px 10px',
+                borderRadius: 999,
+                border: '0.5px solid var(--border)',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                fontSize: 12,
+              }}
+            >
+              Указать {formatAmount(suggestedAmount)} ₽
+            </button>
+          )}
+        </div>
+
+        <input
+          value={item.name}
+          onChange={(e) => onChange({ ...item, name: e.target.value })}
+          placeholder="Название (необязательно)"
+          style={{ ...inputStyle, width: '100%', padding: '10px 12px', fontSize: 14 }}
+        />
       </div>
 
       <button
