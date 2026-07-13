@@ -19,6 +19,7 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
   const categoryMap = useCategoryMap();
   const tags = useAllTags();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [breakdownMode, setBreakdownMode] = useState('category'); // 'category' | 'subcategory'
 
   const breakdown = useMemo(() => {
     if (!items || !categoryMap) return [];
@@ -85,22 +86,42 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
         {purchase.note && <p style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 12 }}>{purchase.note}</p>}
 
         <div style={{ marginTop: 24 }}>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>Разбивка по категориям</div>
           {purchase.needsDetail ? (
-            <div style={{ fontSize: 14, color: 'var(--text-faint)' }}>Покупка не детализирована</div>
+            <>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>Разбивка по категориям</div>
+              <div style={{ fontSize: 14, color: 'var(--text-faint)' }}>Покупка не детализирована</div>
+            </>
           ) : (
-            breakdown.map((b) => <CategoryBreakdownBar key={b.category?.id || 'other'} {...b} />)
+            <>
+              <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', padding: 3, marginBottom: 10 }}>
+                {[
+                  { value: 'category', label: 'Категории' },
+                  { value: 'subcategory', label: 'Подкатегории' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setBreakdownMode(opt.value)}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: 'none',
+                      background: breakdownMode === opt.value ? 'var(--surface-2)' : 'none',
+                      color: breakdownMode === opt.value ? 'var(--text)' : 'var(--text-muted)',
+                      fontSize: 14,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {breakdownMode === 'category'
+                ? breakdown.map((b) => <CategoryBreakdownBar key={b.category?.id || 'other'} {...b} />)
+                : subcategoryBreakdown.map((b) => <SubcategoryBreakdownBar key={b.subcategory?.id || 'other'} {...b} />)}
+            </>
           )}
         </div>
-
-        {!purchase.needsDetail && subcategoryBreakdown.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>Разбивка по подкатегориям</div>
-            {subcategoryBreakdown.map((b) => (
-              <SubcategoryBreakdownBar key={b.subcategory?.id || 'other'} {...b} />
-            ))}
-          </div>
-        )}
 
         {sortedItems && sortedItems.length > 0 && (
           <div style={{ marginTop: 20 }}>
