@@ -50,6 +50,27 @@ export default function App() {
   const openPurchaseForm = (purchaseId) => navigate('purchaseForm', { purchaseId });
   const openPurchaseView = (purchaseId) => navigate('purchaseView', { purchaseId });
 
+  // Switching between the 3 bottom-nav tabs (Аналитика/Главная/Настройки)
+  // deliberately does NOT behave like drill-down navigation — otherwise
+  // hopping between tabs a few times would force the back gesture to walk
+  // through that whole tab-switch history before ever reaching Home or
+  // exiting. Instead the back-stack for tabs is capped at one level below
+  // Home: going Home -> a tab pushes (so back from that tab returns to
+  // Home), but tab -> tab replaces the current entry instead of growing the
+  // stack, and going back to Home collapses it. Drill-down screens (with
+  // their own visible back button) are unaffected — those still push via
+  // `navigate` and pop via `goBack`.
+  const switchTab = (screen) => {
+    const nextRoute = { screen };
+    const isFirstStepAwayFromHome = screen !== 'home' && route.screen === 'home';
+    if (isFirstStepAwayFromHome) {
+      window.history.pushState(nextRoute, '');
+    } else {
+      window.history.replaceState(nextRoute, '');
+    }
+    setRoute(nextRoute);
+  };
+
   // Tapping the "Главная" tab is a deliberate "go home" action — unlike
   // returning from a purchase's View/Edit (which preserves whatever month
   // and scroll position you had), it always resets to the current month,
@@ -57,7 +78,7 @@ export default function App() {
   const goToHomeTab = () => {
     setHomeMonthAnchor(new Date());
     homeScrollPositionRef.current = 0;
-    navigate('home');
+    switchTab('home');
   };
 
   let screen;
@@ -155,7 +176,7 @@ export default function App() {
           }}
         >
           {route.screen === 'home' && <FabAddButton onClick={() => openPurchaseForm(null)} />}
-          <BottomNav current={route.screen} onNavigate={(s) => (s === 'home' ? goToHomeTab() : navigate(s))} />
+          <BottomNav current={route.screen} onNavigate={(s) => (s === 'home' ? goToHomeTab() : switchTab(s))} />
         </div>
       )}
     </div>
