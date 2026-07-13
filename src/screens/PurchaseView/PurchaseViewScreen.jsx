@@ -34,6 +34,8 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
       .sort((a, b) => b.amount - a.amount);
   }, [items, categoryMap]);
 
+  const sortedItems = useMemo(() => (items ? [...items].sort((a, b) => b.amount - a.amount) : items), [items]);
+
   if (!purchase || !categoryMap) return null;
 
   const purchaseTags = (purchase.tagIds || [])
@@ -72,11 +74,11 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
           )}
         </div>
 
-        {items && items.length > 0 && (
+        {sortedItems && sortedItems.length > 0 && (
           <div style={{ marginTop: 20 }}>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>Позиции</div>
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-              {items.map((item, i) => {
+              {sortedItems.map((item, i) => {
                 const sub = categoryMap.get(item.subcategoryId);
                 const top = categoryMap.get(resolveTopCategoryId(sub));
                 return (
