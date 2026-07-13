@@ -1,8 +1,12 @@
 import { db } from './db';
 
-// `defaultCategoryId` is only ever written when a quick purchase is saved
+// `defaultCategoryId` is only ever offered when a quick purchase is saved
 // for this place (see savePurchase) — detailed-mode saves pass `undefined`
 // here so they update `lastUsed` without touching the learned category.
+// It's learned only once: the first quick purchase at a place with no
+// category yet sets it, but once a place has one, later quick purchases
+// never overwrite it even if a different category is picked — from then on
+// it only changes through the Places editor (setPlaceCategory).
 export async function upsertPlaceLastUsed(name, defaultCategoryId) {
   const trimmed = (name || '').trim();
   if (!trimmed) return;
@@ -10,7 +14,7 @@ export async function upsertPlaceLastUsed(name, defaultCategoryId) {
   await db.places.put({
     name: trimmed,
     lastUsed: Date.now(),
-    defaultCategoryId: defaultCategoryId !== undefined ? defaultCategoryId : (existing?.defaultCategoryId ?? null),
+    defaultCategoryId: existing?.defaultCategoryId ?? defaultCategoryId ?? null,
   });
 }
 
