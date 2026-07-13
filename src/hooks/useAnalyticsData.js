@@ -61,6 +61,7 @@ export function useAnalyticsData(periodType, anchorDate, mode) {
       currentTotal,
       previousTotal,
       totalChangePercent: percentChange(currentTotal, previousTotal),
+      purchaseCount: raw.current.purchases.length,
       undetailedCount: countUndetailedPurchases(raw.current.purchases),
       insufficientPrevious: hasInsufficientPreviousData(raw.previous.purchases),
     };

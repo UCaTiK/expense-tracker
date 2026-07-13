@@ -61,6 +61,9 @@ export default function AnalyticsScreen({ onSelectCategory }) {
                 <Amount value={data.currentTotal} size="lg" />
                 {!data.insufficientPrevious && <ChangeBadge changePercent={data.totalChangePercent} />}
               </div>
+              <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                Покупок за период: {data.purchaseCount}
+              </div>
 
               {data.isOngoing && (
                 <div style={{ display: 'flex', gap: 8, margin: '10px 0' }}>
