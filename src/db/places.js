@@ -26,8 +26,14 @@ export async function searchPlaces(prefix) {
   return db.places.where('name').startsWithIgnoreCase(trimmed).limit(8).toArray();
 }
 
+// `.orderBy('name')` sorts by raw IndexedDB key comparison (UTF-16 code
+// unit order), which is case-sensitive — e.g. every "Z..." name would sort
+// before any "a..." name. Fetch unsorted and sort with localeCompare
+// instead, case-insensitively (`sensitivity: 'base'`), so names differing
+// only by capitalization land in proper alphabetical order.
 export async function listAllPlaces() {
-  return db.places.orderBy('name').toArray();
+  const places = await db.places.toArray();
+  return places.sort((a, b) => a.name.localeCompare(b.name, 'ru', { sensitivity: 'base' }));
 }
 
 export async function getPlace(name) {
