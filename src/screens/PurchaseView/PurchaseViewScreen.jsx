@@ -34,6 +34,25 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
       .sort((a, b) => b.amount - a.amount);
   }, [items, categoryMap]);
 
+  // One row per exact subcategoryId (not rolled up to the top-level parent
+  // like `breakdown` above) — items that picked a category only, with no
+  // subcategory, share a bucket keyed by that category's own id.
+  const subcategoryBreakdown = useMemo(() => {
+    if (!items || !categoryMap) return [];
+    const totals = new Map();
+    for (const item of items) {
+      totals.set(item.subcategoryId, (totals.get(item.subcategoryId) || 0) + item.amount);
+    }
+    const sum = [...totals.values()].reduce((a, b) => a + b, 0) || 1;
+    return [...totals.entries()]
+      .map(([subId, amount]) => {
+        const sub = categoryMap.get(subId);
+        const top = categoryMap.get(resolveTopCategoryId(sub));
+        return { subcategory: sub, topColor: top?.color, amount, percent: (amount / sum) * 100 };
+      })
+      .sort((a, b) => b.amount - a.amount);
+  }, [items, categoryMap]);
+
   const sortedItems = useMemo(() => (items ? [...items].sort((a, b) => b.amount - a.amount) : items), [items]);
 
   if (!purchase || !categoryMap) return null;
@@ -74,9 +93,18 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
           )}
         </div>
 
+        {!purchase.needsDetail && subcategoryBreakdown.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>Разбивка по подкатегориям</div>
+            {subcategoryBreakdown.map((b) => (
+              <SubcategoryBreakdownBar key={b.subcategory?.id || 'other'} {...b} />
+            ))}
+          </div>
+        )}
+
         {sortedItems && sortedItems.length > 0 && (
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>Позиции</div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>Позиции ({sortedItems.length})</div>
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
               {sortedItems.map((item, i) => {
                 const sub = categoryMap.get(item.subcategoryId);
@@ -154,6 +182,23 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
           onDeleted();
         }}
       />
+    </div>
+  );
+}
+
+// Subcategories have no icon/color of their own — the bar uses the parent
+// top-level category's color instead, matching the item list's color dots.
+function SubcategoryBreakdownBar({ subcategory, topColor, amount, percent }) {
+  const color = getCategoryColorVar(topColor);
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <span style={{ fontSize: 13 }}>{subcategory?.name || 'Без подкатегории'}</span>
+        <Amount value={amount} size="sm" />
+      </div>
+      <div style={{ height: 6, borderRadius: 3, background: 'var(--surface-2)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${percent}%`, background: color, borderRadius: 3 }} />
+      </div>
     </div>
   );
 }
