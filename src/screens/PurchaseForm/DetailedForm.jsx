@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import PurchaseItemRow from './PurchaseItemRow';
 import SumMismatchWarning from './SumMismatchWarning';
@@ -49,9 +49,29 @@ export default function DetailedForm({ items, onChangeItems, totalPaid, onChange
     const remaining = Math.round((Number(totalPaid || 0) - existingSum) * 100) / 100;
     const id = generateId();
     const amount = remaining > 0 ? String(remaining) : '';
-    if (amount) setSuggestedIds((prev) => new Set(prev).add(id));
+    // Marked unconfirmed even when it starts out empty (e.g. the total
+    // hasn't been typed yet) — see the sync effect below, which needs to
+    // recognize this item as still "open to follow the total" either way.
+    setSuggestedIds((prev) => new Set(prev).add(id));
     onChangeItems([...items, { id, name: '', subcategoryId, amount }]);
   };
+
+  // If there's exactly one item and it's still unconfirmed, its amount has
+  // no other reasonable value than "the whole total" — so it keeps
+  // following totalPaid live (e.g. total typed as 0, one item added, then
+  // the total gets filled in afterwards) until the user actually touches
+  // the field themselves, which is the only thing that confirms it.
+  useEffect(() => {
+    if (items.length !== 1) return;
+    const [only] = items;
+    if (!suggestedIds.has(only.id)) return;
+    const synced = Number(totalPaid) > 0 ? String(Number(totalPaid)) : '';
+    if (only.amount !== synced) onChangeItems([{ ...only, amount: synced }]);
+    // Deliberately keyed only on totalPaid — items/suggestedIds are read
+    // fresh from this render's closure, but shouldn't themselves retrigger
+    // this sync (that would fight the user's own edits to the field).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalPaid]);
 
   const confirmAmount = (id) => {
     setSuggestedIds((prev) => {
