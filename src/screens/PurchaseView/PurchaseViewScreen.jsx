@@ -20,6 +20,16 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
   const tags = useAllTags();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [breakdownMode, setBreakdownMode] = useState('category'); // 'category' | 'subcategory'
+  // Clicking a breakdown bar filters the item list below to just that
+  // category/subcategory; clicking the selected bar again clears it.
+  // Switching category<->subcategory mode drops any active filter since a
+  // category-kind filter id isn't meaningful once viewing subcategories.
+  const [filter, setFilter] = useState(null); // { kind: 'category' | 'subcategory', id } | null
+
+  const changeBreakdownMode = (mode) => {
+    setBreakdownMode(mode);
+    setFilter(null);
+  };
 
   const breakdown = useMemo(() => {
     if (!items || !categoryMap) return [];
@@ -55,6 +65,14 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
   }, [items, categoryMap]);
 
   const sortedItems = useMemo(() => (items ? [...items].sort((a, b) => b.amount - a.amount) : items), [items]);
+
+  const filteredItems = useMemo(() => {
+    if (!sortedItems || !filter) return sortedItems;
+    return sortedItems.filter((item) => {
+      if (filter.kind === 'subcategory') return item.subcategoryId === filter.id;
+      return resolveTopCategoryId(categoryMap.get(item.subcategoryId)) === filter.id;
+    });
+  }, [sortedItems, filter, categoryMap]);
 
   if (!purchase || !categoryMap) return null;
 
@@ -100,7 +118,7 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
                 ].map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => setBreakdownMode(opt.value)}
+                    onClick={() => changeBreakdownMode(opt.value)}
                     style={{
                       flex: 1,
                       padding: '8px',
@@ -117,17 +135,52 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
                 ))}
               </div>
               {breakdownMode === 'category'
-                ? breakdown.map((b) => <CategoryBreakdownBar key={b.category?.id || 'other'} {...b} />)
-                : subcategoryBreakdown.map((b) => <SubcategoryBreakdownBar key={b.subcategory?.id || 'other'} {...b} />)}
+                ? breakdown.map((b) => (
+                    <CategoryBreakdownBar
+                      key={b.category?.id || 'other'}
+                      {...b}
+                      selected={filter?.kind === 'category' && filter.id === b.category?.id}
+                      onClick={() =>
+                        setFilter((f) =>
+                          f?.kind === 'category' && f.id === b.category?.id ? null : { kind: 'category', id: b.category?.id },
+                        )
+                      }
+                    />
+                  ))
+                : subcategoryBreakdown.map((b) => (
+                    <SubcategoryBreakdownBar
+                      key={b.subcategory?.id || 'other'}
+                      {...b}
+                      selected={filter?.kind === 'subcategory' && filter.id === b.subcategory?.id}
+                      onClick={() =>
+                        setFilter((f) =>
+                          f?.kind === 'subcategory' && f.id === b.subcategory?.id
+                            ? null
+                            : { kind: 'subcategory', id: b.subcategory?.id },
+                        )
+                      }
+                    />
+                  ))}
             </>
           )}
         </div>
 
         {sortedItems && sortedItems.length > 0 && (
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>Позиции ({sortedItems.length})</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Позиции ({filteredItems.length})</span>
+              {filter && (
+                <button
+                  type="button"
+                  onClick={() => setFilter(null)}
+                  style={{ fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', textDecoration: 'underline' }}
+                >
+                  Показать все
+                </button>
+              )}
+            </div>
             <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-              {sortedItems.map((item, i) => {
+              {filteredItems.map((item, i) => {
                 const sub = categoryMap.get(item.subcategoryId);
                 const top = categoryMap.get(resolveTopCategoryId(sub));
                 return (
@@ -209,17 +262,32 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
 
 // Subcategories have no icon/color of their own — the bar uses the parent
 // top-level category's color instead, matching the item list's color dots.
-function SubcategoryBreakdownBar({ subcategory, topColor, amount, percent }) {
+// Clicking filters the item list below to just that subcategory (tap the
+// already-selected one again to clear).
+function SubcategoryBreakdownBar({ subcategory, topColor, amount, percent, selected, onClick }) {
   const color = getCategoryColorVar(topColor);
   return (
-    <div style={{ marginBottom: 10 }}>
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'block',
+        width: '100%',
+        marginBottom: 10,
+        padding: 6,
+        borderRadius: 'var(--radius-sm)',
+        border: 'none',
+        background: selected ? 'var(--surface-2)' : 'none',
+        textAlign: 'left',
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <span style={{ fontSize: 13 }}>{subcategory?.name || 'Без подкатегории'}</span>
+        <span style={{ fontSize: 13, color: 'var(--text)' }}>{subcategory?.name || 'Без подкатегории'}</span>
         <Amount value={amount} size="sm" />
       </div>
       <div style={{ height: 6, borderRadius: 3, background: 'var(--surface-2)', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${percent}%`, background: color, borderRadius: 3 }} />
       </div>
-    </div>
+    </button>
   );
 }
