@@ -5,7 +5,6 @@ import { resolveTopCategoryId } from '../../lib/categoryTree';
 import { getIconComponent } from '../../lib/icons';
 import { getCategoryColorVar } from '../../lib/colors';
 import { inputStyle } from '../../lib/formStyles';
-import { formatAmount } from '../../lib/format';
 import PickerModal from '../../components/common/PickerModal';
 
 function CategoryOptionRow({ category, showArrow }) {
@@ -36,6 +35,10 @@ export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRem
   const categoryMap = useCategoryMap();
   const topCategories = useTopLevelCategories() || [];
   const [openPicker, setOpenPicker] = useState(null); // null | 'category' | 'subcategory'
+  // Once the amount field has been focused (or the item already had a real
+  // amount to begin with), it's "touched" — the suggested remainder never
+  // ghosts into it again, even if the user clears it back to empty.
+  const [amountTouched, setAmountTouched] = useState(Boolean(item.amount));
 
   // item.subcategoryId may point at a genuine subcategory (has parentId) or
   // at a top-level category directly (parentId null — category chosen,
@@ -72,88 +75,86 @@ export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRem
     setOpenPicker(null);
   };
 
+  // Shows the suggested remainder as a "ghost" value sitting right inside
+  // the amount field itself (dashed border) instead of a separate hint —
+  // it's not a real committed amount yet, just what's displayed. The first
+  // focus commits a real "0" (solid border from then on) so typing starts
+  // from an actual value rather than the ghosted suggestion.
+  const showGhost = !amountTouched && !item.amount && suggestedAmount != null;
+  const handleAmountFocus = (e) => {
+    if (!showGhost) return;
+    setAmountTouched(true);
+    onChange({ ...item, amount: '0' });
+    requestAnimationFrame(() => e.target.select());
+  };
+
   return (
     <div
       style={{
         display: 'flex',
-        alignItems: 'center',
-        gap: 8,
+        flexDirection: 'column',
+        gap: 6,
         background: 'var(--surface)',
         borderRadius: 'var(--radius-md)',
         padding: 10,
         marginBottom: 8,
       }}
     >
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <button
-          type="button"
-          onClick={() => setOpenPicker('category')}
-          style={{
-            ...inputStyle,
-            width: '100%',
-            padding: '10px 12px',
-            fontSize: 14,
-            textAlign: 'left',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            color: selectedTop ? 'var(--text)' : 'var(--text-faint)',
-          }}
-        >
-          {selectedTop ? (selectedSub ? `${selectedTop.name} › ${selectedSub.name}` : selectedTop.name) : 'Категория'}
-        </button>
-
-        <div>
-          <input
-            type="number"
-            inputMode="decimal"
-            value={item.amount}
-            onChange={(e) => onChange({ ...item, amount: e.target.value })}
-            placeholder="0"
-            style={{ ...inputStyle, width: '100%', padding: '10px 12px', fontSize: 14 }}
-          />
-          {!item.amount && suggestedAmount != null && (
-            <button
-              type="button"
-              onClick={() => onChange({ ...item, amount: String(suggestedAmount) })}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                marginTop: 6,
-                padding: '4px 10px',
-                borderRadius: 999,
-                border: '0.5px solid var(--border)',
-                background: 'transparent',
-                color: 'var(--text-muted)',
-                fontSize: 12,
-              }}
-            >
-              Указать {formatAmount(suggestedAmount)} ₽
-            </button>
-          )}
-        </div>
-
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <input
           value={item.name}
           onChange={(e) => onChange({ ...item, name: e.target.value })}
           placeholder="Название (необязательно)"
-          style={{ ...inputStyle, width: '100%', padding: '10px 12px', fontSize: 14 }}
+          style={{ ...inputStyle, flex: 1, minWidth: 0, padding: '10px 12px', fontSize: 14 }}
         />
+        <input
+          type="number"
+          inputMode="decimal"
+          value={showGhost ? suggestedAmount : item.amount}
+          onFocus={handleAmountFocus}
+          onChange={(e) => {
+            setAmountTouched(true);
+            onChange({ ...item, amount: e.target.value });
+          }}
+          placeholder="0"
+          style={{
+            ...inputStyle,
+            width: 90,
+            flexShrink: 0,
+            padding: '10px 8px',
+            fontSize: 14,
+            textAlign: 'right',
+            border: showGhost ? '1px dashed var(--border)' : inputStyle.border,
+            color: showGhost ? 'var(--text-faint)' : 'var(--text)',
+          }}
+        />
+        <button
+          onClick={onRemove}
+          aria-label="Удалить позицию"
+          style={{ flexShrink: 0, padding: 8, background: 'none', border: 'none', color: 'var(--text-faint)' }}
+        >
+          <X size={18} />
+        </button>
       </div>
 
       <button
-        onClick={onRemove}
-        aria-label="Удалить позицию"
+        type="button"
+        onClick={() => setOpenPicker('category')}
         style={{
-          alignSelf: 'center',
-          flexShrink: 0,
-          padding: 8,
-          background: 'none',
-          border: 'none',
-          color: 'var(--text-faint)',
+          ...inputStyle,
+          display: 'flex',
+          alignItems: 'center',
+          width: '100%',
+          padding: '10px 12px',
+          fontSize: 14,
+          textAlign: 'left',
+          color: selectedTop ? 'var(--text)' : 'var(--text-faint)',
         }}
       >
-        <X size={18} />
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {selectedTop ? (selectedSub ? `${selectedTop.name} › ${selectedSub.name}` : selectedTop.name) : 'Категория'}
+        </span>
+        <ChevronRight size={16} color="var(--text-faint)" style={{ flexShrink: 0 }} />
       </button>
 
       {openPicker === 'category' && (
