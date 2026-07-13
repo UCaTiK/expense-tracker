@@ -48,14 +48,27 @@ export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRem
   const selectedTop = categoryMap?.get(selectedTopId);
   const selectedSub = categoryMap?.get(selectedSubId);
 
+  const hasSubcategories = (topId) => {
+    if (!categoryMap) return false;
+    for (const cat of categoryMap.values()) {
+      if (cat.parentId === topId && !cat.isArchived) return true;
+    }
+    return false;
+  };
+
   // Picking a category always resets any previously chosen subcategory —
-  // the subcategory is never set automatically, only by hand.
+  // the subcategory is never set automatically, only by hand. If the newly
+  // picked category has any subcategories, the subcategory picker opens
+  // immediately after (chained, single field) — PickerModal only calls
+  // onSelect, not onClose, so this transition isn't racing an auto-close.
   const pickCategory = (id) => {
     onChange({ ...item, subcategoryId: id });
+    setOpenPicker(hasSubcategories(id) ? 'subcategory' : null);
   };
 
   const pickSubcategory = (id) => {
     onChange({ ...item, subcategoryId: id || selectedTopId });
+    setOpenPicker(null);
   };
 
   return (
@@ -71,46 +84,23 @@ export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRem
       }}
     >
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button
-            type="button"
-            onClick={() => setOpenPicker('category')}
-            style={{
-              ...inputStyle,
-              flex: 1,
-              minWidth: 0,
-              padding: '10px 12px',
-              fontSize: 14,
-              textAlign: 'left',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              color: selectedTop ? 'var(--text)' : 'var(--text-faint)',
-            }}
-          >
-            {selectedTop?.name || 'Категория'}
-          </button>
-          <button
-            type="button"
-            disabled={!selectedTopId}
-            onClick={() => setOpenPicker('subcategory')}
-            style={{
-              ...inputStyle,
-              flex: 1,
-              minWidth: 0,
-              padding: '10px 12px',
-              fontSize: 14,
-              textAlign: 'left',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              opacity: selectedTopId ? 1 : 0.4,
-              color: selectedSub ? 'var(--text)' : 'var(--text-faint)',
-            }}
-          >
-            {selectedSub?.name || 'Подкатегория'}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setOpenPicker('category')}
+          style={{
+            ...inputStyle,
+            width: '100%',
+            padding: '10px 12px',
+            fontSize: 14,
+            textAlign: 'left',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            color: selectedTop ? 'var(--text)' : 'var(--text-faint)',
+          }}
+        >
+          {selectedTop ? (selectedSub ? `${selectedTop.name} › ${selectedSub.name}` : selectedTop.name) : 'Категория'}
+        </button>
 
         <div>
           <input

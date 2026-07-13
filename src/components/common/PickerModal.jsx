@@ -2,6 +2,12 @@
 // used where a native <select> dropdown would feel too plain (e.g. the
 // category/subcategory pickers), unlike the bottom-sheet style used by
 // ConfirmDialog/edit menus elsewhere in the app.
+//
+// Selecting an option only calls `onSelect` — it does NOT also call
+// `onClose` itself, so a caller can chain straight into showing another
+// picker (e.g. category -> subcategory) from inside `onSelect` without a
+// race against an automatic close. Tapping the backdrop still calls
+// `onClose` directly, for dismissing without picking anything.
 export default function PickerModal({ title, options, selectedId, onSelect, onClose, renderOption }) {
   return (
     <div
@@ -37,10 +43,7 @@ export default function PickerModal({ title, options, selectedId, onSelect, onCl
           return (
             <button
               key={opt.id}
-              onClick={() => {
-                onSelect(opt.id);
-                onClose();
-              }}
+              onClick={() => onSelect(opt.id)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
