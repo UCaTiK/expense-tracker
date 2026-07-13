@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, MapPin, Search } from 'lucide-react';
+import { ChevronDown, ChevronLeft, MapPin, Search } from 'lucide-react';
 import PlaceRow from './PlaceRow';
 import EmptyState from '../../components/common/EmptyState';
 import { useAllPlaces } from '../../hooks/usePlaces';
@@ -13,6 +13,16 @@ export default function PlacesScreen({ onBack }) {
   const categoryMap = useCategoryMap();
   const topCategories = useTopLevelCategories({ includeArchived: true });
   const [query, setQuery] = useState('');
+  const [collapsed, setCollapsed] = useState(() => new Set());
+
+  const toggleSection = (key) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const filtered = useMemo(() => {
     if (!places) return places;
@@ -85,10 +95,25 @@ export default function PlacesScreen({ onBack }) {
       )}
 
       {sections.map(({ category, places: placesForCategory }) => {
+        const key = category?.id || 'none';
         const Icon = category ? getIconComponent(category.icon) : null;
+        const isExpanded = !collapsed.has(key);
         return (
-          <div key={category?.id || 'none'} style={{ marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 8px' }}>
+          <div key={key} style={{ marginBottom: 16 }}>
+            <button
+              type="button"
+              onClick={() => toggleSection(key)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                width: '100%',
+                padding: '0 16px 8px',
+                background: 'none',
+                border: 'none',
+                textAlign: 'left',
+              }}
+            >
               {category ? (
                 <span
                   style={{
@@ -107,15 +132,24 @@ export default function PlacesScreen({ onBack }) {
               ) : (
                 <span style={{ width: 18, height: 18, borderRadius: '50%', border: '0.5px dashed var(--border)', flexShrink: 0 }} />
               )}
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{category ? category.name : 'Без категории'}</span>
-            </div>
-            <div style={{ background: 'var(--surface)', margin: '0 16px', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-              {placesForCategory.map((place, i) => (
-                <div key={place.name} style={{ borderTop: i > 0 ? '0.5px solid var(--border)' : 'none' }}>
-                  <PlaceRow place={place} />
-                </div>
-              ))}
-            </div>
+              <span style={{ flex: 1, fontSize: 13, color: 'var(--text-muted)' }}>
+                {category ? category.name : 'Без категории'}
+              </span>
+              <ChevronDown
+                size={16}
+                color="var(--text-faint)"
+                style={{ transform: isExpanded ? 'none' : 'rotate(-90deg)', flexShrink: 0 }}
+              />
+            </button>
+            {isExpanded && (
+              <div style={{ background: 'var(--surface)', margin: '0 16px', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                {placesForCategory.map((place, i) => (
+                  <div key={place.name} style={{ borderTop: i > 0 ? '0.5px solid var(--border)' : 'none' }}>
+                    <PlaceRow place={place} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
