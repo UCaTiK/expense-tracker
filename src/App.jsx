@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import BottomNav from './components/layout/BottomNav';
 import FabAddButton from './components/layout/FabAddButton';
 import HomeScreen from './screens/Home/HomeScreen';
@@ -12,9 +12,10 @@ import TagsScreen from './screens/Tags/TagsScreen';
 import PlacesScreen from './screens/Places/PlacesScreen';
 
 const TAB_SCREENS = new Set(['home', 'analytics', 'settings']);
+const INITIAL_ROUTE = { screen: 'home' };
 
 export default function App() {
-  const [route, setRoute] = useState({ screen: 'home' });
+  const [route, setRoute] = useState(INITIAL_ROUTE);
 
   // Home's viewed month and scroll position live here (not inside
   // HomeScreen) because navigating to purchaseView/purchaseForm and back
@@ -23,21 +24,31 @@ export default function App() {
   const [homeMonthAnchor, setHomeMonthAnchor] = useState(() => new Date());
   const homeScrollPositionRef = useRef(0);
 
-  const navigate = (screen, params = {}) => setRoute({ screen, ...params });
+  // Every forward navigation pushes a real browser history entry (route
+  // stored as its state); going back anywhere in the app calls
+  // history.back() instead of directly restoring a route. That makes the
+  // Android back gesture/button and the in-app back/cancel buttons
+  // literally the same action — both just fire a popstate event that this
+  // listener turns back into a route. Once popped past the very first
+  // screen there's nothing left to go back to, so the gesture exits the
+  // app exactly like a normal browser tab would.
+  useEffect(() => {
+    window.history.replaceState(INITIAL_ROUTE, '');
+    const onPopState = (event) => setRoute(event.state || INITIAL_ROUTE);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
-  // `cancelTo` is where the Cancel button on the form goes (one step back —
-  // either a tab screen or the View screen being edited). `viewReturnTo` is
-  // where the View screen's own Back button should ultimately go once the
-  // save completes — threaded through unchanged from the View that launched
-  // the edit, so repeated edit/save cycles never point Back at the View
-  // screen itself (which would make Back a no-op loop).
-  const openPurchaseForm = (purchaseId, cancelTo, viewReturnTo) =>
-    navigate('purchaseForm', { purchaseId, cancelTo, viewReturnTo });
+  const navigate = (screen, params = {}) => {
+    const nextRoute = { screen, ...params };
+    window.history.pushState(nextRoute, '');
+    setRoute(nextRoute);
+  };
 
-  const openPurchaseView = (purchaseId, returnTo = { screen: 'home' }) =>
-    navigate('purchaseView', { purchaseId, returnTo });
+  const goBack = () => window.history.back();
 
-  const goTo = (target) => navigate(target.screen, target);
+  const openPurchaseForm = (purchaseId) => navigate('purchaseForm', { purchaseId });
+  const openPurchaseView = (purchaseId) => navigate('purchaseView', { purchaseId });
 
   // Tapping the "Главная" tab is a deliberate "go home" action — unlike
   // returning from a purchase's View/Edit (which preserves whatever month
@@ -55,12 +66,12 @@ export default function App() {
       screen = (
         <PurchaseFormScreen
           purchaseId={route.purchaseId}
-          // Creating a new purchase goes straight back to where the FAB was
-          // opened from (spec: adding an expense shouldn't detour through
-          // the View screen). Editing an existing one still lands on View,
-          // so the user can confirm what changed.
-          onDone={(id) => (route.purchaseId ? openPurchaseView(id, route.viewReturnTo) : goTo(route.viewReturnTo))}
-          onCancel={() => goTo(route.cancelTo)}
+          // Both "cancel" and "save and done" just go back — Form was
+          // always pushed on top of either Home (new purchase) or View
+          // (editing), so one step back naturally lands on the right
+          // screen, and View re-fetches by id so it shows the fresh data.
+          onDone={() => goBack()}
+          onCancel={() => goBack()}
         />
       );
       break;
@@ -68,16 +79,14 @@ export default function App() {
       screen = (
         <PurchaseViewScreen
           purchaseId={route.purchaseId}
-          onEdit={(id) =>
-            openPurchaseForm(id, { screen: 'purchaseView', purchaseId: id, returnTo: route.returnTo }, route.returnTo)
-          }
-          onBack={() => goTo(route.returnTo)}
-          onDeleted={() => goTo(route.returnTo)}
+          onEdit={(id) => openPurchaseForm(id)}
+          onBack={() => goBack()}
+          onDeleted={() => goBack()}
         />
       );
       break;
     case 'categories':
-      screen = <CategoriesScreen onBack={() => navigate('settings')} />;
+      screen = <CategoriesScreen onBack={() => goBack()} />;
       break;
     case 'settings':
       screen = (
@@ -89,10 +98,10 @@ export default function App() {
       );
       break;
     case 'tags':
-      screen = <TagsScreen onBack={() => navigate('settings')} />;
+      screen = <TagsScreen onBack={() => goBack()} />;
       break;
     case 'places':
-      screen = <PlacesScreen onBack={() => navigate('settings')} />;
+      screen = <PlacesScreen onBack={() => goBack()} />;
       break;
     case 'analytics':
       screen = (
@@ -109,15 +118,8 @@ export default function App() {
           categoryId={route.categoryId}
           initialPeriodType={route.periodType}
           initialAnchorDate={route.anchorDate}
-          onBack={() => navigate('analytics')}
-          onSelectPurchase={(id) =>
-            openPurchaseView(id, {
-              screen: 'categoryDetail',
-              categoryId: route.categoryId,
-              periodType: route.periodType,
-              anchorDate: route.anchorDate,
-            })
-          }
+          onBack={() => goBack()}
+          onSelectPurchase={(id) => openPurchaseView(id)}
         />
       );
       break;
@@ -125,7 +127,7 @@ export default function App() {
     default:
       screen = (
         <HomeScreen
-          onSelectPurchase={(id) => openPurchaseView(id, { screen: 'home' })}
+          onSelectPurchase={(id) => openPurchaseView(id)}
           monthAnchor={homeMonthAnchor}
           onMonthAnchorChange={setHomeMonthAnchor}
           scrollPositionRef={homeScrollPositionRef}
@@ -152,9 +154,7 @@ export default function App() {
             padding: '0 16px calc(12px + env(safe-area-inset-bottom))',
           }}
         >
-          {route.screen === 'home' && (
-            <FabAddButton onClick={() => openPurchaseForm(null, { screen: 'home' }, { screen: 'home' })} />
-          )}
+          {route.screen === 'home' && <FabAddButton onClick={() => openPurchaseForm(null)} />}
           <BottomNav current={route.screen} onNavigate={(s) => (s === 'home' ? goToHomeTab() : navigate(s))} />
         </div>
       )}
