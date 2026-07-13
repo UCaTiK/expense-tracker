@@ -109,7 +109,10 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>Разбивка по категориям</div>
               <div style={{ fontSize: 14, color: 'var(--text-faint)' }}>Покупка не детализирована</div>
             </>
-          ) : (
+          ) : breakdown.length > 1 ? (
+            // Multiple top-level categories — the category/subcategory
+            // toggle is only meaningful here, since with a single category
+            // the "category" view would just be one 100% bar.
             <>
               <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 'var(--radius-sm)', padding: 3, marginBottom: 10 }}>
                 {[
@@ -162,6 +165,22 @@ export default function PurchaseViewScreen({ purchaseId, onEdit, onBack, onDelet
                     />
                   ))}
             </>
+          ) : (
+            // Everything shares one category — always show the
+            // subcategory breakdown directly, no toggle to switch to a
+            // single trivial 100% category bar.
+            subcategoryBreakdown.map((b) => (
+              <SubcategoryBreakdownBar
+                key={b.subcategory?.id || 'other'}
+                {...b}
+                selected={filter?.kind === 'subcategory' && filter.id === b.subcategory?.id}
+                onClick={() =>
+                  setFilter((f) =>
+                    f?.kind === 'subcategory' && f.id === b.subcategory?.id ? null : { kind: 'subcategory', id: b.subcategory?.id },
+                  )
+                }
+              />
+            ))
           )}
         </div>
 
