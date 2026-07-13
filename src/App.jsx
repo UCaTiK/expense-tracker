@@ -57,13 +57,25 @@ export default function App() {
   // exiting. Instead the back-stack for tabs is capped at one level below
   // Home: going Home -> a tab pushes (so back from that tab returns to
   // Home), but tab -> tab replaces the current entry instead of growing the
-  // stack, and going back to Home collapses it. Drill-down screens (with
-  // their own visible back button) are unaffected — those still push via
-  // `navigate` and pop via `goBack`.
+  // stack. Drill-down screens (with their own visible back button) are
+  // unaffected — those still push via `navigate` and pop via `goBack`.
+  //
+  // Returning to Home specifically must use a *real* goBack(), not
+  // replaceState — BottomNav only renders on the 3 tab screens, so
+  // switchTab('home') is only ever reachable while sitting exactly one
+  // level above the true root (Home is always pushed, never replaced, so
+  // nothing else can grow that depth further). replaceState here would
+  // have overwritten that one entry with another "home" entry sitting
+  // *above* the true bottom of the stack instead of actually returning to
+  // it — indistinguishable on screen, but it meant the next back
+  // press only collapsed that duplicate instead of exiting the app.
   const switchTab = (screen) => {
+    if (screen === 'home') {
+      if (route.screen !== 'home') goBack();
+      return;
+    }
     const nextRoute = { screen };
-    const isFirstStepAwayFromHome = screen !== 'home' && route.screen === 'home';
-    if (isFirstStepAwayFromHome) {
+    if (route.screen === 'home') {
       window.history.pushState(nextRoute, '');
     } else {
       window.history.replaceState(nextRoute, '');
