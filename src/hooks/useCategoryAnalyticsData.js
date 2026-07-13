@@ -36,7 +36,11 @@ export function useCategoryAnalyticsData(categoryId, periodType, anchorDate) {
   const { start, end } = useMemo(() => getPeriodRange(periodType, anchorDate), [periodType, anchorDate]);
 
   const raw = useLiveQuery(async () => {
-    const purchases = await db.purchases.where('date').between(start, end, true, false).toArray();
+    // .between() on an indexed field iterates in ascending key order by
+    // default — reverse to newest-first, matching Home's purchase list.
+    const purchases = (await db.purchases.where('date').between(start, end, true, false).toArray()).sort(
+      (a, b) => b.date - a.date,
+    );
     const ids = purchases.map((p) => p.id);
     const items = ids.length ? await db.purchaseItems.where('purchaseId').anyOf(ids).toArray() : [];
     const itemsByPurchaseId = new Map();
