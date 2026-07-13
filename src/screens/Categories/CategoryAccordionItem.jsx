@@ -91,7 +91,7 @@ export default function CategoryAccordionItem({ category, dragHandleProps }) {
               {category.subcategories.map((sub) => (
                 <SortableItem key={sub.id} id={sub.id}>
                   {({ dragHandleProps: subDragHandleProps }) => (
-                    <SubcategoryRow category={sub} dragHandleProps={subDragHandleProps} />
+                    <SubcategoryRow category={sub} parentColor={category.color} dragHandleProps={subDragHandleProps} />
                   )}
                 </SortableItem>
               ))}

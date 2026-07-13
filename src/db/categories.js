@@ -21,12 +21,21 @@ export async function getCategoryById(id) {
   return db.categories.get(id);
 }
 
+// A subcategory's color always matches its parent's (never stored/edited
+// independently — resolved via the parent everywhere it's displayed), but
+// its icon defaults to the parent's icon at creation time and can then be
+// changed independently per subcategory from then on.
 export async function createCategory({ name, parentId, icon, color }) {
   const siblings = parentId ? await getSubcategories(parentId) : await getTopLevelCategories({ includeArchived: true });
+  let defaultIcon = 'Tag';
+  if (parentId) {
+    const parent = await getCategoryById(parentId);
+    defaultIcon = parent?.icon || 'Tag';
+  }
   const category = {
     id: generateId(),
     name: name.trim(),
-    icon: icon || (parentId ? null : 'Tag'),
+    icon: icon || defaultIcon,
     color: parentId ? null : color || 'coral',
     parentId: parentId || null,
     isDefault: false,

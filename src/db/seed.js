@@ -138,7 +138,7 @@ export async function seedDatabase() {
         rows.push({
           id: generateId(),
           name: sub.name,
-          icon: null,
+          icon: top.icon,
           color: null,
           parentId: topId,
           isDefault: true,
@@ -259,7 +259,7 @@ export async function migrateDefaultCategoriesV2() {
         await db.categories.add({
           id: generateId(),
           name: subDef.name,
-          icon: null,
+          icon: topDef.icon,
           color: null,
           parentId: topRow.id,
           isDefault: true,
@@ -279,18 +279,30 @@ export async function migrateDefaultCategoriesV2() {
 // empty or don't match a known icon/color — a category the user deliberately
 // re-styled via the edit menu always has a valid icon/color and is left
 // alone, even though it's still isDefault/defaultKey-tagged.
+//
+// Also backfills any subcategory (default or user-created) that has no icon
+// of its own with its parent's icon — subcategories never had icons before
+// this was added, so this both seeds every pre-existing row once and
+// self-heals going forward. A subcategory the user has since picked their
+// own icon for always has a valid one and is left alone.
 export async function repairDefaultCategoryStyling() {
   const all = await db.categories.toArray();
+  const byId = new Map(all.map((c) => [c.id, c]));
   const fixes = [];
   for (const cat of all) {
-    if (cat.parentId !== null || !cat.isDefault || !cat.defaultKey) continue;
-    const expected = DEFAULT_STYLE_BY_KEY.get(cat.defaultKey);
-    if (!expected) continue;
+    if (cat.parentId === null) {
+      if (!cat.isDefault || !cat.defaultKey) continue;
+      const expected = DEFAULT_STYLE_BY_KEY.get(cat.defaultKey);
+      if (!expected) continue;
 
-    const patch = {};
-    if (!cat.icon || !ICON_NAMES.includes(cat.icon)) patch.icon = expected.icon;
-    if (!cat.color || !CATEGORY_COLORS.includes(cat.color)) patch.color = expected.color;
-    if (Object.keys(patch).length > 0) fixes.push(db.categories.update(cat.id, patch));
+      const patch = {};
+      if (!cat.icon || !ICON_NAMES.includes(cat.icon)) patch.icon = expected.icon;
+      if (!cat.color || !CATEGORY_COLORS.includes(cat.color)) patch.color = expected.color;
+      if (Object.keys(patch).length > 0) fixes.push(db.categories.update(cat.id, patch));
+    } else if (!cat.icon || !ICON_NAMES.includes(cat.icon)) {
+      const parent = byId.get(cat.parentId);
+      if (parent?.icon) fixes.push(db.categories.update(cat.id, { icon: parent.icon }));
+    }
   }
   if (fixes.length > 0) await Promise.all(fixes);
 }

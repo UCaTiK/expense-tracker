@@ -43,10 +43,12 @@ export default function CategoryEditMenu({ category, isTopLevel, onClose }) {
           <IconPicker value={category.icon} onSelect={(icon) => updateCategory(category.id, { icon })} />
         </div>
 
-        <div>
-          <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Цвет</label>
-          <ColorPicker value={category.color} onSelect={(color) => updateCategory(category.id, { color })} />
-        </div>
+        {isTopLevel && (
+          <div>
+            <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Цвет</label>
+            <ColorPicker value={category.color} onSelect={(color) => updateCategory(category.id, { color })} />
+          </div>
+        )}
 
         <button
           onClick={async () => {

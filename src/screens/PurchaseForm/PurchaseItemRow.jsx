@@ -31,6 +31,32 @@ function CategoryOptionRow({ category, showArrow }) {
   );
 }
 
+// The synthetic "Без подкатегории" option (id: '') has no icon of its own —
+// falls back to the parent category's icon. Real subcategories use their
+// own icon, but always the parent's color (never their own).
+function SubcategoryOptionRow({ category, topIcon, topColor }) {
+  const Icon = getIconComponent(category.id ? category.icon : topIcon);
+  return (
+    <>
+      <span
+        style={{
+          width: 24,
+          height: 24,
+          borderRadius: '50%',
+          background: getCategoryColorVar(topColor),
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={13} color="#121212" />
+      </span>
+      <span style={{ flex: 1 }}>{category.name}</span>
+    </>
+  );
+}
+
 export default function PurchaseItemRow({ item, isAmountSuggested, onConfirmAmount, onChange, onRemove }) {
   const categoryMap = useCategoryMap();
   const topCategories = useTopLevelCategories() || [];
@@ -171,6 +197,7 @@ export default function PurchaseItemRow({ item, isAmountSuggested, onConfirmAmou
           onSelect={pickSubcategory}
           onClose={() => setOpenPicker(null)}
           onBack={() => setOpenPicker('category')}
+          renderOption={(sub) => <SubcategoryOptionRow category={sub} topIcon={selectedTop?.icon} topColor={selectedTop?.color} />}
         />
       )}
     </div>
