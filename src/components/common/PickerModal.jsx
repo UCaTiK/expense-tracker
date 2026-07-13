@@ -1,3 +1,5 @@
+import { ChevronLeft } from 'lucide-react';
+
 // Centered, semi-transparent modal for picking one option from a list —
 // used where a native <select> dropdown would feel too plain (e.g. the
 // category/subcategory pickers), unlike the bottom-sheet style used by
@@ -8,7 +10,11 @@
 // picker (e.g. category -> subcategory) from inside `onSelect` without a
 // race against an automatic close. Tapping the backdrop still calls
 // `onClose` directly, for dismissing without picking anything.
-export default function PickerModal({ title, options, selectedId, onSelect, onClose, renderOption }) {
+//
+// `onBack`, if given, renders a back arrow next to the title that returns
+// to whatever picker chained into this one (e.g. subcategory -> category),
+// instead of dismissing the whole picker flow.
+export default function PickerModal({ title, options, selectedId, onSelect, onClose, onBack, renderOption }) {
   return (
     <div
       onClick={onClose}
@@ -35,8 +41,20 @@ export default function PickerModal({ title, options, selectedId, onSelect, onCl
           padding: 10,
         }}
       >
-        {title && (
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '8px 10px 10px' }}>{title}</div>
+        {(title || onBack) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 4px 10px' }}>
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                aria-label="Назад"
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 6, display: 'flex' }}
+              >
+                <ChevronLeft size={18} />
+              </button>
+            )}
+            {title && <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: onBack ? '0' : '4px 6px' }}>{title}</div>}
+          </div>
         )}
         {options.map((opt) => {
           const selected = opt.id === selectedId;

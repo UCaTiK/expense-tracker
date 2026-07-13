@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { ChevronRight, X } from 'lucide-react';
 import { useTopLevelCategories, useSubcategories, useCategoryMap } from '../../hooks/useCategories';
 import { resolveTopCategoryId } from '../../lib/categoryTree';
 import { getIconComponent } from '../../lib/icons';
@@ -8,7 +8,7 @@ import { inputStyle } from '../../lib/formStyles';
 import { formatAmount } from '../../lib/format';
 import PickerModal from '../../components/common/PickerModal';
 
-function CategoryOptionRow({ category }) {
+function CategoryOptionRow({ category, showArrow }) {
   const Icon = getIconComponent(category.icon);
   return (
     <>
@@ -26,7 +26,8 @@ function CategoryOptionRow({ category }) {
       >
         <Icon size={13} color="#121212" />
       </span>
-      <span>{category.name}</span>
+      <span style={{ flex: 1 }}>{category.name}</span>
+      {showArrow && <ChevronRight size={16} color="var(--text-faint)" />}
     </>
   );
 }
@@ -162,7 +163,7 @@ export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRem
           selectedId={selectedTopId}
           onSelect={pickCategory}
           onClose={() => setOpenPicker(null)}
-          renderOption={(cat) => <CategoryOptionRow category={cat} />}
+          renderOption={(cat) => <CategoryOptionRow category={cat} showArrow={hasSubcategories(cat.id)} />}
         />
       )}
 
@@ -173,6 +174,7 @@ export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRem
           selectedId={selectedSubId}
           onSelect={pickSubcategory}
           onClose={() => setOpenPicker(null)}
+          onBack={() => setOpenPicker('category')}
         />
       )}
     </div>
