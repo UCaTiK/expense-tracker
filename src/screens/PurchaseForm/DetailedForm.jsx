@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import PurchaseItemRow from './PurchaseItemRow';
 import SumMismatchWarning from './SumMismatchWarning';
@@ -34,10 +35,31 @@ function getDefaultCategoryForNewItem(items, categoryMap, quickCategoryId) {
 
 export default function DetailedForm({ items, onChangeItems, totalPaid, onChangeTotalPaid, quickCategoryId }) {
   const categoryMap = useCategoryMap();
+  // Ids of items whose amount is still just the auto-suggested remainder,
+  // not yet confirmed by the user touching the field. The amount itself is
+  // real data from the moment the item is created (counted in itemsSum,
+  // saved like any other value) — this set only drives the "still just a
+  // suggestion" dashed-border display in PurchaseItemRow, and is cleared
+  // the moment that field is focused.
+  const [suggestedIds, setSuggestedIds] = useState(() => new Set());
 
   const addItem = () => {
     const subcategoryId = getDefaultCategoryForNewItem(items, categoryMap || new Map(), quickCategoryId);
-    onChangeItems([...items, { id: generateId(), name: '', subcategoryId, amount: '' }]);
+    const existingSum = items.reduce((sum, it) => sum + (Number(it.amount) || 0), 0);
+    const remaining = Math.round((Number(totalPaid || 0) - existingSum) * 100) / 100;
+    const id = generateId();
+    const amount = remaining > 0 ? String(remaining) : '';
+    if (amount) setSuggestedIds((prev) => new Set(prev).add(id));
+    onChangeItems([...items, { id, name: '', subcategoryId, amount }]);
+  };
+
+  const confirmAmount = (id) => {
+    setSuggestedIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
 
   const updateItem = (index, next) => {
@@ -47,7 +69,9 @@ export default function DetailedForm({ items, onChangeItems, totalPaid, onChange
   };
 
   const removeItem = (index) => {
+    const removed = items[index];
     onChangeItems(items.filter((_, i) => i !== index));
+    if (removed) confirmAmount(removed.id);
   };
 
   const itemsSum = items.reduce((sum, it) => sum + (Number(it.amount) || 0), 0);
@@ -55,24 +79,16 @@ export default function DetailedForm({ items, onChangeItems, totalPaid, onChange
   return (
     <div>
       <label style={fieldLabelStyle}>Позиции</label>
-      {items.map((item, i) => {
-        // How much of the stated total is still unallocated if this item's
-        // own amount is excluded — shown as a tappable hint rather than
-        // auto-filled, so a single-item purchase can one-tap "the whole
-        // amount" instead of retyping it, without every new row silently
-        // pre-filling a number the user didn't type.
-        const othersSum = items.reduce((sum, it, idx) => (idx === i ? sum : sum + (Number(it.amount) || 0)), 0);
-        const suggestedAmount = Math.round((Number(totalPaid || 0) - othersSum) * 100) / 100;
-        return (
-          <PurchaseItemRow
-            key={item.id}
-            item={item}
-            suggestedAmount={suggestedAmount > 0 ? suggestedAmount : null}
-            onChange={(next) => updateItem(i, next)}
-            onRemove={() => removeItem(i)}
-          />
-        );
-      })}
+      {items.map((item, i) => (
+        <PurchaseItemRow
+          key={item.id}
+          item={item}
+          isAmountSuggested={suggestedIds.has(item.id)}
+          onConfirmAmount={() => confirmAmount(item.id)}
+          onChange={(next) => updateItem(i, next)}
+          onRemove={() => removeItem(i)}
+        />
+      ))}
       <button
         onClick={addItem}
         style={{

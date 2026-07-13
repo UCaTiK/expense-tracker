@@ -31,14 +31,10 @@ function CategoryOptionRow({ category, showArrow }) {
   );
 }
 
-export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRemove }) {
+export default function PurchaseItemRow({ item, isAmountSuggested, onConfirmAmount, onChange, onRemove }) {
   const categoryMap = useCategoryMap();
   const topCategories = useTopLevelCategories() || [];
   const [openPicker, setOpenPicker] = useState(null); // null | 'category' | 'subcategory'
-  // Once the amount field has been focused (or the item already had a real
-  // amount to begin with), it's "touched" — the suggested remainder never
-  // ghosts into it again, even if the user clears it back to empty.
-  const [amountTouched, setAmountTouched] = useState(Boolean(item.amount));
 
   // item.subcategoryId may point at a genuine subcategory (has parentId) or
   // at a top-level category directly (parentId null — category chosen,
@@ -75,15 +71,14 @@ export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRem
     setOpenPicker(null);
   };
 
-  // Shows the suggested remainder as a "ghost" value sitting right inside
-  // the amount field itself (dashed border) instead of a separate hint —
-  // it's not a real committed amount yet, just what's displayed. The first
-  // focus commits a real "0" (solid border from then on) so typing starts
-  // from an actual value rather than the ghosted suggestion.
-  const showGhost = !amountTouched && !item.amount && suggestedAmount != null;
+  // The amount is real, counted data from the moment the item is created —
+  // isAmountSuggested only means the user hasn't confirmed it yet, shown via
+  // a dashed border/muted text. The first focus resets it to a real "0"
+  // (solid border from then on) so typing starts from an actual value
+  // instead of overwriting the suggestion mid-digit.
   const handleAmountFocus = (e) => {
-    if (!showGhost) return;
-    setAmountTouched(true);
+    if (!isAmountSuggested) return;
+    onConfirmAmount();
     onChange({ ...item, amount: '0' });
     requestAnimationFrame(() => e.target.select());
   };
@@ -110,10 +105,10 @@ export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRem
         <input
           type="number"
           inputMode="decimal"
-          value={showGhost ? suggestedAmount : item.amount}
+          value={item.amount}
           onFocus={handleAmountFocus}
           onChange={(e) => {
-            setAmountTouched(true);
+            if (isAmountSuggested) onConfirmAmount();
             onChange({ ...item, amount: e.target.value });
           }}
           placeholder="0"
@@ -124,8 +119,8 @@ export default function PurchaseItemRow({ item, suggestedAmount, onChange, onRem
             padding: '10px 8px',
             fontSize: 14,
             textAlign: 'right',
-            border: showGhost ? '1px dashed var(--border)' : inputStyle.border,
-            color: showGhost ? 'var(--text-faint)' : 'var(--text)',
+            border: isAmountSuggested ? '1px dashed var(--border)' : inputStyle.border,
+            color: isAmountSuggested ? 'var(--text-faint)' : 'var(--text)',
           }}
         />
         <button
